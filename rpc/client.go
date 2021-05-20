@@ -10,10 +10,6 @@ import (
 	"github.com/progrium/qtalk-go/transport"
 )
 
-type Caller interface {
-	Call(ctx context.Context, selector string, args, reply interface{}) (*Response, error)
-}
-
 // RemoteError represents an error that has been returned from
 // the remote side of the RPC connection.
 type RemoteError string
@@ -60,6 +56,7 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 	}
 
 	// response
+	// TODO: timeout
 	var header ResponseHeader
 	err = dec.Decode(&header)
 	if err != nil {
@@ -75,6 +72,7 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 		ResponseHeader: header,
 		Channel:        ch,
 		Reply:          reply,
+		codec:          framer,
 	}
 	if resp.Error != nil {
 		return resp, RemoteError(*resp.Error)
@@ -90,6 +88,7 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 			return resp, err
 		}
 	} else {
+		// TODO: timeout
 		if err := dec.Decode(resp.Reply); err != nil {
 			return resp, err
 		}
