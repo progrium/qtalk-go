@@ -1,4 +1,4 @@
-package rpc
+package peer
 
 import (
 	"github.com/progrium/qtalk-go/codec"
