@@ -58,16 +58,29 @@ func (m *RespondMux) Handler(c *Call) (h Handler, pattern string) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	h, pattern = m.match(cleanSelector(c.Selector))
+	h, pattern = m.Match(c.Selector)
 	if h == nil {
 		h, pattern = NotFoundHandler(), ""
 	}
 	return
 }
 
+func (m *RespondMux) Remove(selector string) (h Handler) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	selector = cleanSelector(selector)
+	h = m.m[selector].h
+	delete(m.m, selector)
+
+	return
+}
+
 // Find a handler on a handler map given a selector string.
 // Most-specific (longest) pattern wins.
-func (m *RespondMux) match(selector string) (h Handler, pattern string) {
+func (m *RespondMux) Match(selector string) (h Handler, pattern string) {
+	selector = cleanSelector(selector)
+
 	// Check for exact match first.
 	v, ok := m.m[selector]
 	if ok {
@@ -93,6 +106,8 @@ func (m *RespondMux) Handle(pattern string, handler Handler) {
 	if pattern == "" {
 		panic("rpc: invalid pattern")
 	}
+	pattern = cleanSelector(pattern)
+
 	if handler == nil {
 		panic("rpc: nil handler")
 	}
