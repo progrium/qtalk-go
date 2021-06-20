@@ -1,6 +1,8 @@
 package fn
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/progrium/qtalk-go/rpc"
@@ -36,12 +38,17 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 		params := reflect.New(reflect.TypeOf([]interface{}{}))
 
 		if err := c.Receive(params.Interface()); err != nil {
-			// TODO: handle right, return error
-			panic(err)
+			r.Return(fmt.Errorf("fn: %s", err.Error()))
+			return
+		}
+
+		if params.Elem().Len() > fn.Type().NumIn() {
+			r.Return(errors.New("fn: too many input arguments"))
+			return
 		}
 
 		var fnParams []reflect.Value
-		for idx, param := range params.Interface().([]interface{}) {
+		for idx, param := range params.Elem().Interface().([]interface{}) {
 			if rcvr.IsValid() {
 				idx++
 			}
@@ -53,7 +60,18 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 			}
 		}
 
-		// TODO capture panic: Call with too few input arguments
+		if fn.Type().NumIn() > 0 {
+			callRef := reflect.TypeOf(&rpc.Call{})
+			if fn.Type().In(fn.Type().NumIn()-1) == callRef {
+				fnParams = append(fnParams, reflect.ValueOf(c))
+			}
+		}
+
+		if len(fnParams) < fn.Type().NumIn() {
+			r.Return(errors.New("fn: too few input arguments"))
+			return
+		}
+
 		// TODO type assertions for simple named types
 		fnReturn := fn.Call(fnParams)
 
@@ -61,9 +79,13 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 	})
 }
 
+// parseReturn turns a slice of reflect.Values into a value or an error
 func parseReturn(ret []reflect.Value) interface{} {
 	if len(ret) == 0 {
 		return nil
+	}
+	if len(ret) == 1 {
+		return ret[0].Interface()
 	}
 
 	var retVal reflect.Value
@@ -78,10 +100,6 @@ func parseReturn(ret []reflect.Value) interface{} {
 		} else {
 			retVal = v
 		}
-	}
-
-	if !retVal.IsValid() {
-		return nil
 	}
 
 	return retVal.Interface()
