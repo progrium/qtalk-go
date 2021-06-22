@@ -60,6 +60,9 @@ func PtrsFrom(v interface{}) (ptrs []*Ptr) {
 	walk(reflect.ValueOf(v), []string{}, func(v reflect.Value, parent reflect.Value, path []string) error {
 		if v.Type() == typ {
 			vv := v.Interface().(*Ptr)
+			if v.IsNil() {
+				return nil
+			}
 			ptrs = append(ptrs, vv)
 		}
 		return nil

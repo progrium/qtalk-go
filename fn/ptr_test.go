@@ -18,7 +18,8 @@ type mockData struct {
 	Inner struct {
 		Fn *fn.Ptr
 	}
-	Fn *fn.Ptr
+	NilFn *fn.Ptr
+	Fn    *fn.Ptr
 }
 
 func TestCallbackUtils(t *testing.T) {
