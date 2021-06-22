@@ -102,3 +102,37 @@ func TestHandlerFromFunc(t *testing.T) {
 	})
 
 }
+
+type mockMethods struct{}
+
+func (m *mockMethods) Foo() string {
+	return "Foo"
+}
+
+func (m *mockMethods) Bar() {}
+
+func TestHandlerFromMethods(t *testing.T) {
+	handler := HandlerFrom(&mockMethods{})
+	mux, ok := handler.(*rpc.RespondMux)
+	if !ok {
+		t.Fatal("expected handler to be rpc.RespondMux")
+	}
+	h, _ := mux.Match("Foo")
+	if h == nil {
+		t.Fatal("expected Foo handler")
+	}
+	h, _ = mux.Match("Bar")
+	if h == nil {
+		t.Fatal("expected Bar handler")
+	}
+
+	client, _ := rpctest.NewPair(mux, codec.JSONCodec{})
+
+	var ret string
+	if _, err := client.Call(context.Background(), "Foo", nil, &ret); err != nil {
+		t.Fatal(err)
+	}
+	if ret != "Foo" {
+		t.Fatalf("unexpected ret: %v", ret)
+	}
+}

@@ -48,6 +48,9 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 		}
 
 		var fnParams []reflect.Value
+		if rcvr.IsValid() {
+			fnParams = append(fnParams, rcvr)
+		}
 		for idx, param := range params.Elem().Interface().([]interface{}) {
 			if rcvr.IsValid() {
 				idx++
@@ -72,7 +75,7 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 			return
 		}
 
-		// TODO type assertions for simple named types
+		// TODO type conversions for simple named types (type Foo string)
 		fnReturn := fn.Call(fnParams)
 
 		r.Return(parseReturn(fnReturn))
