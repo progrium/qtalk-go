@@ -2,6 +2,7 @@ package fn_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/progrium/qtalk-go/fn"
@@ -20,6 +21,22 @@ type mockData struct {
 	}
 	NilFn *fn.Ptr
 	Fn    *fn.Ptr
+}
+
+func TestPtrsFromMap(t *testing.T) {
+	data := mockData{Fn: fn.Callback(func() {})}
+
+	b, _ := json.Marshal(data)
+	var m map[string]interface{}
+	json.Unmarshal(b, &m)
+
+	caller := &mockCaller{}
+	fn.SetCallers(&m, caller)
+
+	if m["Fn"].(map[string]interface{})["Caller"] != caller {
+		t.Fatal("caller not set")
+	}
+
 }
 
 func TestCallbackUtils(t *testing.T) {

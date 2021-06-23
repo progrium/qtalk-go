@@ -35,6 +35,13 @@ func SetCallers(v interface{}, c rpc.Caller) {
 	for _, ptr := range ptrs {
 		ptr.Caller = c
 	}
+	walk(reflect.ValueOf(v), []string{}, func(v reflect.Value, parent reflect.Value, path []string) error {
+		if path[len(path)-1] == "$fnptr" {
+			parent.SetMapIndex(reflect.ValueOf("Caller"), reflect.ValueOf(c))
+		}
+		return nil
+	})
+
 }
 
 func RegisterPtrs(m *rpc.RespondMux, v interface{}) {
