@@ -30,18 +30,20 @@ func Callback(fn interface{}) *Ptr {
 	}
 }
 
-func SetCallers(v interface{}, c rpc.Caller) {
-	ptrs := PtrsFrom(v)
-	for _, ptr := range ptrs {
+func SetCallers(v interface{}, c rpc.Caller) []string {
+	var ptrs []string
+	for _, ptr := range PtrsFrom(v) {
 		ptr.Caller = c
+		ptrs = append(ptrs, ptr.Ptr)
 	}
 	walk(reflect.ValueOf(v), []string{}, func(v reflect.Value, parent reflect.Value, path []string) error {
 		if path[len(path)-1] == "$fnptr" {
 			parent.SetMapIndex(reflect.ValueOf("Caller"), reflect.ValueOf(c))
+			ptrs = append(ptrs, v.String())
 		}
 		return nil
 	})
-
+	return ptrs
 }
 
 func RegisterPtrs(m *rpc.RespondMux, v interface{}) {
