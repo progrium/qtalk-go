@@ -13,8 +13,7 @@ type Peer struct {
 	*rpc.RespondMux
 }
 
-// TODO: change to just New
-func NewPeer(session transport.Session, codec codec.Codec) *Peer {
+func New(session transport.Session, codec codec.Codec) *Peer {
 	return &Peer{
 		Session:    session,
 		Codec:      codec,
@@ -24,6 +23,6 @@ func NewPeer(session transport.Session, codec codec.Codec) *Peer {
 }
 
 func (p *Peer) Respond() {
-	srv := &rpc.Server{Handler: p.RespondMux}
+	srv := &rpc.Server{Handler: p.RespondMux, Codec: p.Codec}
 	srv.Respond(p.Session)
 }
