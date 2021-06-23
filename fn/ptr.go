@@ -15,7 +15,7 @@ import (
 
 type Ptr struct {
 	Ptr    string     `json:"$fnptr" mapstructure:"$fnptr"`
-	Caller rpc.Caller `json:"-" mapstructure:"-"`
+	Caller rpc.Caller `json:"-"`
 	fn     interface{}
 }
 
