@@ -38,7 +38,7 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 		params := reflect.New(reflect.TypeOf([]interface{}{}))
 
 		if err := c.Receive(params.Interface()); err != nil {
-			r.Return(fmt.Errorf("fn: %s", err.Error()))
+			r.Return(fmt.Errorf("fn: args: %s", err.Error()))
 			return
 		}
 

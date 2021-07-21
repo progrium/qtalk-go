@@ -77,7 +77,9 @@ func (m *RespondMux) Remove(selector string) (h Handler) {
 }
 
 // Find a handler on a handler map given a selector string.
-// Most-specific (longest) pattern wins.
+// Most-specific (longest) pattern wins. If a pattern handler
+// is a submux, it will call Match with the selector minus the
+// pattern.
 func (m *RespondMux) Match(selector string) (h Handler, pattern string) {
 	selector = cleanSelector(selector)
 
@@ -94,6 +96,20 @@ func (m *RespondMux) Match(selector string) (h Handler, pattern string) {
 			return e.h, e.pattern
 		}
 	}
+
+	// Check for any prefix match that has a handler
+	// that is also a matcher (ie is a submuxer)
+	for _, e := range m.m {
+		if strings.HasPrefix(selector, e.pattern) {
+			m, ok := e.h.(interface {
+				Match(selector string) (h Handler, pattern string)
+			})
+			if ok {
+				return m.Match(strings.TrimPrefix(selector, e.pattern))
+			}
+		}
+	}
+
 	return nil, ""
 }
 
