@@ -42,7 +42,7 @@ func TestRPC(t *testing.T) {
 		t.Fatal("unexpected continue")
 	}
 	if out != "Hello world" {
-		t.Fatalf("unexpected return: %v", out)
+		t.Fatalf("unexpected return: %#v", out)
 	}
 
 }

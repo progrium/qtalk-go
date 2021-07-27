@@ -66,5 +66,9 @@ func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
 	if s.Handler == nil {
 		s.Handler = NewRespondMux()
 	}
+
 	s.Handler.RespondRPC(resp, &call)
+	if !resp.responded {
+		resp.Return(nil)
+	}
 }

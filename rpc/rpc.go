@@ -51,9 +51,10 @@ type Responder interface {
 }
 
 type responder struct {
-	header *ResponseHeader
-	ch     *mux.Channel
-	c      codec.Codec
+	responded bool
+	header    *ResponseHeader
+	ch        *mux.Channel
+	c         codec.Codec
 }
 
 func (r *responder) Header() *ResponseHeader {
@@ -73,6 +74,7 @@ func (r *responder) Continue(v interface{}) (*mux.Channel, error) {
 }
 
 func (r *responder) respond(v interface{}, continue_ bool) error {
+	r.responded = true
 	r.header.Continue = continue_
 
 	// if v is error, set v to nil
