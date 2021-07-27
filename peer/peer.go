@@ -2,18 +2,18 @@ package peer
 
 import (
 	"github.com/progrium/qtalk-go/codec"
+	"github.com/progrium/qtalk-go/mux"
 	"github.com/progrium/qtalk-go/rpc"
-	"github.com/progrium/qtalk-go/transport"
 )
 
 type Peer struct {
-	transport.Session
-	codec.Codec
+	*mux.Session
 	*rpc.Client
 	*rpc.RespondMux
+	codec.Codec
 }
 
-func New(session transport.Session, codec codec.Codec) *Peer {
+func New(session *mux.Session, codec codec.Codec) *Peer {
 	return &Peer{
 		Session:    session,
 		Codec:      codec,

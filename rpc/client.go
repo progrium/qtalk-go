@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/progrium/qtalk-go/codec"
-	"github.com/progrium/qtalk-go/transport"
+	"github.com/progrium/qtalk-go/mux"
 )
 
 // RemoteError represents an error that has been returned from
@@ -19,11 +19,11 @@ func (e RemoteError) Error() string {
 }
 
 type Client struct {
-	session transport.Session
+	session *mux.Session
 	codec   codec.Codec
 }
 
-func NewClient(session transport.Session, codec codec.Codec) *Client {
+func NewClient(session *mux.Session, codec codec.Codec) *Client {
 	return &Client{
 		session: session,
 		codec:   codec,

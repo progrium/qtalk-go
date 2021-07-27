@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/progrium/qtalk-go/codec"
-	"github.com/progrium/qtalk-go/transport/qmux"
+	"github.com/progrium/qtalk-go/transport"
 )
 
 func newPair(handler Handler, codec codec.Codec) (*Client, *Server) {
 	ar, bw := io.Pipe()
 	br, aw := io.Pipe()
-	sessA, _ := qmux.DialIO(aw, ar)
-	sessB, _ := qmux.DialIO(bw, br)
+	sessA, _ := transport.DialIO(aw, ar)
+	sessB, _ := transport.DialIO(bw, br)
 
 	srv := &Server{
 		Codec:   codec,

@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/progrium/qtalk-go/codec"
+	"github.com/progrium/qtalk-go/mux"
 	"github.com/progrium/qtalk-go/transport"
 )
 
@@ -23,7 +24,7 @@ func (s *Server) Serve(l transport.Listener) error {
 	}
 }
 
-func (s *Server) Respond(sess transport.Session) {
+func (s *Server) Respond(sess *mux.Session) {
 	for {
 		ch, err := sess.Accept()
 		if err != nil {
@@ -36,7 +37,7 @@ func (s *Server) Respond(sess transport.Session) {
 	}
 }
 
-func (s *Server) respond(sess transport.Session, ch transport.Channel) {
+func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
 	defer ch.Close()
 
 	framer := &codec.FrameCodec{Codec: s.Codec}

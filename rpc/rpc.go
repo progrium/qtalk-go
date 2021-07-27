@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/progrium/qtalk-go/codec"
-	"github.com/progrium/qtalk-go/transport"
+	"github.com/progrium/qtalk-go/mux"
 )
 
 type Caller interface {
@@ -30,7 +30,7 @@ type ResponseHeader struct {
 type Response struct {
 	ResponseHeader
 	Reply   interface{}
-	Channel transport.Channel
+	Channel *mux.Channel
 
 	codec codec.Codec
 }
@@ -46,13 +46,13 @@ func (r *Response) Receive(v interface{}) error {
 type Responder interface {
 	Header() *ResponseHeader
 	Return(interface{}) error
-	Continue(interface{}) (transport.Channel, error)
+	Continue(interface{}) (*mux.Channel, error)
 	Send(interface{}) error
 }
 
 type responder struct {
 	header *ResponseHeader
-	ch     transport.Channel
+	ch     *mux.Channel
 	c      codec.Codec
 }
 
@@ -68,7 +68,7 @@ func (r *responder) Return(v interface{}) error {
 	return r.respond(v, false)
 }
 
-func (r *responder) Continue(v interface{}) (transport.Channel, error) {
+func (r *responder) Continue(v interface{}) (*mux.Channel, error) {
 	return r.ch, r.respond(v, true)
 }
 
