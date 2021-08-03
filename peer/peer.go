@@ -22,6 +22,10 @@ func New(session *mux.Session, codec codec.Codec) *Peer {
 	}
 }
 
+func (p *Peer) Close() error {
+	return p.Client.Close()
+}
+
 func (p *Peer) Respond() {
 	srv := &rpc.Server{Handler: p.RespondMux, Codec: p.Codec}
 	srv.Respond(p.Session)

@@ -2,9 +2,7 @@ package rpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/mux"
@@ -30,6 +28,14 @@ func NewClient(session *mux.Session, codec codec.Codec) *Client {
 	}
 }
 
+func (c *Client) Close() error {
+	return c.session.Close()
+}
+
+func (c *Client) Wait() error {
+	return c.session.Wait()
+}
+
 func (c *Client) Call(ctx context.Context, selector string, args, reply interface{}) (*Response, error) {
 	ch, err := c.session.Open(ctx)
 	if err != nil {
@@ -49,10 +55,20 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 		return nil, err
 	}
 
-	err = enc.Encode(args)
-	if err != nil {
-		ch.Close()
-		return nil, err
+	argCh, isChan := args.(chan interface{})
+	switch {
+	case isChan:
+		for arg := range argCh {
+			if err := enc.Encode(arg); err != nil {
+				ch.Close()
+				return nil, err
+			}
+		}
+	default:
+		if err := enc.Encode(args); err != nil {
+			ch.Close()
+			return nil, err
+		}
 	}
 
 	// response
@@ -81,12 +97,7 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 	if reply == nil {
 		// read into throwaway buffer
 		var buf []byte
-		if err := dec.Decode(&buf); err != nil {
-			if errors.Is(err, io.EOF) {
-				return resp, nil
-			}
-			return resp, err
-		}
+		dec.Decode(&buf)
 	} else {
 		// TODO: timeout
 		if err := dec.Decode(resp.Reply); err != nil {
