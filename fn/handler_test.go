@@ -11,11 +11,21 @@ import (
 	"github.com/progrium/qtalk-go/rpc/rpctest"
 )
 
+func TestHandlerFromBadData(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("did not panic from bad argument data")
+		}
+	}()
+	HandlerFrom(2)
+}
+
 func TestHandlerFromFunc(t *testing.T) {
 	t.Run("int sum", func(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) int {
 			return a + b
 		}), codec.JSONCodec{})
+		defer client.Close()
 
 		var sum int
 		if _, err := client.Call(context.Background(), "", []interface{}{2, 3}, &sum); err != nil {
@@ -30,6 +40,7 @@ func TestHandlerFromFunc(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) error {
 			return nil
 		}), codec.JSONCodec{})
+		defer client.Close()
 
 		if _, err := client.Call(context.Background(), "", []interface{}{2, 3}, nil); err != nil {
 			t.Fatal(err)
@@ -40,6 +51,7 @@ func TestHandlerFromFunc(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) int {
 			return a + b
 		}), codec.JSONCodec{})
+		defer client.Close()
 
 		var sum int
 		_, err := client.Call(context.Background(), "", []interface{}{2}, &sum)
@@ -52,6 +64,7 @@ func TestHandlerFromFunc(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) int {
 			return a + b
 		}), codec.JSONCodec{})
+		defer client.Close()
 
 		var sum int
 		_, err := client.Call(context.Background(), "", []interface{}{2, 3, 5}, &sum)
@@ -67,6 +80,7 @@ func TestHandlerFromFunc(t *testing.T) {
 			}
 			return a + b
 		}), codec.JSONCodec{})
+		defer client.Close()
 
 		var sum int
 		if _, err := client.Call(context.Background(), "sum", []interface{}{2, 3}, &sum); err != nil {
@@ -81,6 +95,7 @@ func TestHandlerFromFunc(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) error {
 			return errors.New("test")
 		}), codec.JSONCodec{})
+		defer client.Close()
 
 		var sum int
 		_, err := client.Call(context.Background(), "", []interface{}{2, 3}, &sum)
@@ -93,10 +108,24 @@ func TestHandlerFromFunc(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) (int, error) {
 			return a + b, errors.New("test")
 		}), codec.JSONCodec{})
+		defer client.Close()
 
 		var sum int
 		_, err := client.Call(context.Background(), "", []interface{}{2, 3}, &sum)
 		if err == nil || !strings.Contains(err.Error(), "test") {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("no return", func(t *testing.T) {
+		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) {
+			return
+		}), codec.JSONCodec{})
+		defer client.Close()
+
+		var sum int
+		_, err := client.Call(context.Background(), "", []interface{}{2, 3}, &sum)
+		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
@@ -127,6 +156,7 @@ func TestHandlerFromMethods(t *testing.T) {
 	}
 
 	client, _ := rpctest.NewPair(mux, codec.JSONCodec{})
+	defer client.Close()
 
 	var ret string
 	if _, err := client.Call(context.Background(), "Foo", nil, &ret); err != nil {

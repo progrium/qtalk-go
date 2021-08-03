@@ -87,6 +87,9 @@ func TestEncodeDecode(t *testing.T) {
 		if ok != test.ok {
 			t.Fatal("ok not equal")
 		}
+		if m.String() == "" {
+			t.Fatal("empty string representation")
+		}
 	}
 
 }

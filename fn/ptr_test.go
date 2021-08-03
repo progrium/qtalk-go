@@ -9,9 +9,15 @@ import (
 	"github.com/progrium/qtalk-go/rpc"
 )
 
-type mockCaller struct{}
+type mockCaller struct {
+	selector      string
+	params, reply interface{}
+}
 
 func (mc *mockCaller) Call(ctx context.Context, selector string, params, reply interface{}) (*rpc.Response, error) {
+	mc.selector = selector
+	mc.params = params
+	mc.reply = reply
 	return nil, nil
 }
 
@@ -21,6 +27,21 @@ type mockData struct {
 	}
 	NilFn *fn.Ptr
 	Fn    *fn.Ptr
+}
+
+func TestPtrCall(t *testing.T) {
+	cb := fn.Callback(func() {})
+	data := mockData{Fn: cb}
+	caller := &mockCaller{}
+	fn.SetCallers(&data, caller)
+	var ret interface{}
+	cb.Call(context.Background(), []int{1, 2, 3}, &ret)
+	if len(caller.params.([]int)) != 3 {
+		t.Fatal("unexpected params:", caller.params)
+	}
+	if cb.Ptr != caller.selector {
+		t.Fatal("unexpected selector:", caller.selector)
+	}
 }
 
 func TestPtrsFromMap(t *testing.T) {
