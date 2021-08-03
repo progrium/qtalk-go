@@ -54,13 +54,13 @@ type frameDecoder struct {
 
 func (d *frameDecoder) Decode(v interface{}) error {
 	prefix := make([]byte, 4)
-	_, err := d.r.Read(prefix)
+	_, err := io.ReadFull(d.r, prefix)
 	if err != nil {
 		return err
 	}
 	size := binary.BigEndian.Uint32(prefix)
 	buf := make([]byte, size)
-	_, err = d.r.Read(buf)
+	_, err = io.ReadFull(d.r, buf)
 	if err != nil {
 		return err
 	}
