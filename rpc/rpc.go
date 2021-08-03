@@ -19,6 +19,10 @@ type Call struct {
 }
 
 func (c *Call) Receive(v interface{}) error {
+	if v == nil {
+		var discard []byte
+		v = &discard
+	}
 	return c.Decoder.Decode(v)
 }
 
@@ -44,7 +48,6 @@ func (r *Response) Receive(v interface{}) error {
 }
 
 type Responder interface {
-	Header() *ResponseHeader
 	Return(interface{}) error
 	Continue(interface{}) (*mux.Channel, error)
 	Send(interface{}) error
@@ -55,10 +58,6 @@ type responder struct {
 	header    *ResponseHeader
 	ch        *mux.Channel
 	c         codec.Codec
-}
-
-func (r *responder) Header() *ResponseHeader {
-	return r.header
 }
 
 func (r *responder) Send(v interface{}) error {
