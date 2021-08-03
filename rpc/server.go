@@ -25,6 +25,7 @@ func (s *Server) Serve(l transport.Listener) error {
 }
 
 func (s *Server) Respond(sess *mux.Session) {
+	defer sess.Close()
 	for {
 		ch, err := sess.Accept()
 		if err != nil {
