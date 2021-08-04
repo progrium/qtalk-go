@@ -7,23 +7,46 @@ import (
 	"sync"
 )
 
+// A Handler responds to an RPC request.
+//
+// RespondRPC should use Call to receive at least one input argument value, then use
+// Responder to return a value or continue. Since an input argument value is always
+// sent to the handler, a call to Receive on the Call value shoud always be done otherwise
+// the call will block. You can call Receive with nil to discard the input value. If
+// Responder is not used, a default value of nil is returned.
 type Handler interface {
 	RespondRPC(Responder, *Call)
 }
 
+// The HandlerFunc type is an adapter to allow the use of ordinary functions as RPC handlers.
+// If f is a function with the appropriate signature, HandlerFunc(f) is a Handler that calls f.
 type HandlerFunc func(Responder, *Call)
 
+// RespondRPC calls f(resp, call).
 func (f HandlerFunc) RespondRPC(resp Responder, call *Call) {
 	f(resp, call)
 }
 
-// NotFoundHandler returns a simple handler that returns an error "not found"
+// NotFoundHandler returns a simple handler that returns an error "not found".
 func NotFoundHandler() Handler {
 	return HandlerFunc(func(r Responder, c *Call) {
 		r.Return(fmt.Errorf("not found: %s", c.Selector))
 	})
 }
 
+// RespondMux is an RPC call multiplexer. It matches the selector of each incoming call against a list of
+// registered selector patterns and calls the handler for the pattern that most closely matches the selector.
+//
+// RespondMux also takes care of normalizing the selector to a path form "/foo/bar", allowing you to use
+// this or the more conventional RPC dot form "foo.bar".
+//
+// Patterns match exact incoming selectors, or can end with a "/" or "." to indicate handling any selectors
+// beginning with this pattern. Longer patterns take precedence over shorter ones, so that if there are
+// handlers registered for both "foo." and "foo.bar.", the latter handler will be called for selectors
+// beginning "foo.bar." and the former will receive calls for any other selectors prefixed with "foo.".
+//
+// Since RespondMux is also a Handler, you can use them for submuxing. If a pattern matches a handler that
+// is a RespondMux, it will trim the matching selector prefix before matching against the sub RespondMux.
 type RespondMux struct {
 	m  map[string]muxEntry
 	es []muxEntry // slice of entries sorted from longest to shortest.
@@ -47,13 +70,20 @@ func cleanSelector(s string) string {
 	return s
 }
 
+// NewRespondMux allocates and returns a new RespondMux.
 func NewRespondMux() *RespondMux { return new(RespondMux) }
 
+// RespondRPC dispatches the call to the handler whose pattern most closely matches the selector.
 func (m *RespondMux) RespondRPC(r Responder, c *Call) {
 	h, _ := m.Handler(c)
 	h.RespondRPC(r, c)
 }
 
+// Handler returns the handler to use for the given call, consulting
+// c.Selector. It always returns a non-nil handler.
+//
+// If there is no registered handler that applies to the request, Handler
+// returns a "not found" handler and an empty pattern.
 func (m *RespondMux) Handler(c *Call) (h Handler, pattern string) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -65,6 +95,7 @@ func (m *RespondMux) Handler(c *Call) (h Handler, pattern string) {
 	return
 }
 
+// Remove removes and returns the handler for the selector.
 func (m *RespondMux) Remove(selector string) (h Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -76,7 +107,7 @@ func (m *RespondMux) Remove(selector string) (h Handler) {
 	return
 }
 
-// Find a handler on a handler map given a selector string.
+// Match finds a handler given a selector string.
 // Most-specific (longest) pattern wins. If a pattern handler
 // is a submux, it will call Match with the selector minus the
 // pattern.

@@ -333,6 +333,7 @@ func TestRPC(t *testing.T) {
 			ch, err := r.Continue(nil)
 			fatal(t, err)
 			io.Copy(ch, ch)
+			ch.Close()
 		}))
 		defer client.Close()
 

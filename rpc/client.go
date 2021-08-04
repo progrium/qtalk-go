@@ -8,7 +8,7 @@ import (
 	"github.com/progrium/qtalk-go/mux"
 )
 
-// RemoteError represents an error that has been returned from
+// RemoteError is an error that has been returned from
 // the remote side of the RPC connection.
 type RemoteError string
 
@@ -16,28 +16,32 @@ func (e RemoteError) Error() string {
 	return fmt.Sprintf("remote: %s", string(e))
 }
 
+// Client wraps a session and codec to make RPC calls over the session.
 type Client struct {
-	session *mux.Session
-	codec   codec.Codec
+	*mux.Session
+	codec codec.Codec
 }
 
+// NewClient takes a session and codec to make a client for making RPC calls.
 func NewClient(session *mux.Session, codec codec.Codec) *Client {
 	return &Client{
-		session: session,
+		Session: session,
 		codec:   codec,
 	}
 }
 
-func (c *Client) Close() error {
-	return c.session.Close()
-}
-
-func (c *Client) Wait() error {
-	return c.session.Wait()
-}
-
+// Call makes synchronous calls to the remote selector passing args and putting the reply
+// value in reply. Both args and reply can be nil. Args can be a channel of interface{}
+// values for asynchronously streaming multiple values from another goroutine, however
+// the call will still block until a response is sent. If there is an error making the call
+// an error is returned, and if an error is returned by the remote handler a RemoteError
+// is returned.
+//
+// A Response value is also returned for advanced operations. For example, you can check
+// if the call is continued, meaning the underlying channel will be kept open for either
+// streaming back more results or using the channel as a full duplex byte stream.
 func (c *Client) Call(ctx context.Context, selector string, args, reply interface{}) (*Response, error) {
-	ch, err := c.session.Open(ctx)
+	ch, err := c.Session.Open(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +51,7 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 	dec := framer.Decoder(ch)
 
 	// request
-	err = enc.Encode(Call{
+	err = enc.Encode(CallHeader{
 		Selector: selector,
 	})
 	if err != nil {

@@ -9,11 +9,13 @@ import (
 	"github.com/progrium/qtalk-go/transport"
 )
 
+// Server wraps a Handler and codec to respond to RPC calls.
 type Server struct {
 	Handler Handler
 	Codec   codec.Codec
 }
 
+// Serve will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
 func (s *Server) Serve(l transport.Listener) error {
 	for {
 		sess, err := l.Accept()
@@ -24,6 +26,9 @@ func (s *Server) Serve(l transport.Listener) error {
 	}
 }
 
+// Respond will Accept channels until the Session is closed and respond with the server handler in its own goroutine.
+// If Handler was not set, an empty RespondMux is used. If the handler does not initiate a response, a nil value is
+// returned. If the handler does not call Continue, the channel will be closed.
 func (s *Server) Respond(sess *mux.Session) {
 	defer sess.Close()
 	for {
@@ -39,8 +44,6 @@ func (s *Server) Respond(sess *mux.Session) {
 }
 
 func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
-	defer ch.Close()
-
 	framer := &codec.FrameCodec{Codec: s.Codec}
 	dec := framer.Decoder(ch)
 
@@ -53,7 +56,7 @@ func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
 
 	call.Decoder = dec
 	call.Caller = &Client{
-		session: sess,
+		Session: sess,
 		codec:   s.Codec,
 	}
 
@@ -71,5 +74,8 @@ func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
 	s.Handler.RespondRPC(resp, &call)
 	if !resp.responded {
 		resp.Return(nil)
+	}
+	if !resp.header.Continue {
+		ch.Close()
 	}
 }
