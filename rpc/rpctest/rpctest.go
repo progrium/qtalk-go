@@ -8,6 +8,9 @@ import (
 	"github.com/progrium/qtalk-go/transport"
 )
 
+// NewPair creates a Client and Server connected by in-memory pipes.
+// The server Respond method is called in a goroutine. Only the client
+// should need to be cleaned up with call to Close.
 func NewPair(handler rpc.Handler, codec codec.Codec) (*rpc.Client, *rpc.Server) {
 	ar, bw := io.Pipe()
 	br, aw := io.Pipe()

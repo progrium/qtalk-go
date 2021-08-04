@@ -13,16 +13,23 @@ import (
 	"github.com/rs/xid"
 )
 
+// Ptr represents a remote function pointer.
 type Ptr struct {
 	Ptr    string     `json:"$fnptr" mapstructure:"$fnptr"`
 	Caller rpc.Caller `json:"-"`
 	fn     interface{}
 }
 
+// Call uses the Ptr Caller to call this remote function using the Ptr ID as the selector.
+// If Caller is not set on Ptr, Call will panic. Use SetCallers on incoming parameters that
+// may include Ptrs.
 func (p *Ptr) Call(ctx context.Context, params, reply interface{}) (*rpc.Response, error) {
 	return p.Caller.Call(ctx, p.Ptr, params, reply)
 }
 
+// Callback wraps a function in a Ptr giving it a 20 character unique string ID.
+// A unique ID is created with every call, so should only be called once for a
+// given function.
 func Callback(fn interface{}) *Ptr {
 	return &Ptr{
 		Ptr: xid.New().String(),
@@ -30,6 +37,10 @@ func Callback(fn interface{}) *Ptr {
 	}
 }
 
+// SetCallers will set the Caller for any Ptrs found in the value using PtrsFrom, as well as any
+// Ptrs encoded as maps, identifying them with the special key "$fnptr". Without Callers, Ptrs
+// will panic when using Call. This is often used on map[string]interface{} parameters before
+// running through something like github.com/mitchellh/mapstructure.
 func SetCallers(v interface{}, c rpc.Caller) []string {
 	var ptrs []string
 	for _, ptr := range PtrsFrom(v) {
@@ -46,6 +57,11 @@ func SetCallers(v interface{}, c rpc.Caller) []string {
 	return ptrs
 }
 
+// RegisterPtrs will register handlers on the RespondMux for Ptrs found using PtrsFrom on the value.
+// This is often called before making an RPC call that will include Ptr callbacks. It can safely be
+// called more than once for the same Ptrs, as it will only register handlers if they have not been
+// registered. They are registered on the RespondMux using the Ptr ID and a handler from HandlerFrom
+// on the Ptr function.
 func RegisterPtrs(m *rpc.RespondMux, v interface{}) {
 	ptrs := PtrsFrom(v)
 	for _, ptr := range ptrs {
@@ -55,6 +71,7 @@ func RegisterPtrs(m *rpc.RespondMux, v interface{}) {
 	}
 }
 
+// UnregisterPtrs will remove handlers from the RespondMux matching Ptr IDs found using PtrsFrom on the value.
 func UnregisterPtrs(m *rpc.RespondMux, v interface{}) {
 	ptrs := PtrsFrom(v)
 	for _, ptr := range ptrs {
@@ -64,6 +81,7 @@ func UnregisterPtrs(m *rpc.RespondMux, v interface{}) {
 	}
 }
 
+// PtrsFrom collects Ptrs from walking exported struct fields, slice/array elements, map values, and pointers in a value.
 func PtrsFrom(v interface{}) (ptrs []*Ptr) {
 	typ := reflect.TypeOf(&Ptr{})
 	walk(reflect.ValueOf(v), []string{}, func(v reflect.Value, parent reflect.Value, path []string) error {

@@ -6,6 +6,7 @@ import (
 	"github.com/progrium/qtalk-go/rpc"
 )
 
+// Peer is a mux session, RPC client and responder, all in one.
 type Peer struct {
 	*mux.Session
 	*rpc.Client
@@ -13,6 +14,7 @@ type Peer struct {
 	codec.Codec
 }
 
+// New returns a Peer based on a session and codec.
 func New(session *mux.Session, codec codec.Codec) *Peer {
 	return &Peer{
 		Session:    session,
@@ -22,10 +24,13 @@ func New(session *mux.Session, codec codec.Codec) *Peer {
 	}
 }
 
+// Close will close the underlying session.
 func (p *Peer) Close() error {
 	return p.Client.Close()
 }
 
+// Respond lets the Peer respond to incoming channels like
+// a server, using any registered handlers.
 func (p *Peer) Respond() {
 	srv := &rpc.Server{Handler: p.RespondMux, Codec: p.Codec}
 	srv.Respond(p.Session)

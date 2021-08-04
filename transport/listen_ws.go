@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// HandleWS is used to take WebSocket connections, wrap as mux sessions, and send to a NetListener to be accepted.
 func HandleWS(l *NetListener, ws *websocket.Conn) {
 	ws.PayloadType = websocket.BinaryFrame
 	sess := mux.New(ws)
@@ -16,6 +17,7 @@ func HandleWS(l *NetListener, ws *websocket.Conn) {
 	l.errs <- sess.Wait()
 }
 
+// ListenWS takes a TCP address and returns a NetListener with an HTTP+WebSocket server listening on the given address.
 func ListenWS(addr string) (*NetListener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {

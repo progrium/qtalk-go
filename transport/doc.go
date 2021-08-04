@@ -1,2 +1,2 @@
-// Package transport provides several dialers and listeners for getting qmux sessions over TCP, Unix sockets, WebSocket, and stdio.
+// Package transport has several dialers and listeners to get mux sessions over various transports.
 package transport

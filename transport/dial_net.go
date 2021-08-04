@@ -14,10 +14,12 @@ func dialNet(proto, addr string) (*mux.Session, error) {
 	return mux.New(conn), nil
 }
 
+// DialTCP establishes a mux session via TCP connection.
 func DialTCP(addr string) (*mux.Session, error) {
 	return dialNet("tcp", addr)
 }
 
-func DialUnix(addr string) (*mux.Session, error) {
-	return dialNet("unix", addr)
+// DialUnix establishes a mux session via Unix domain socket.
+func DialUnix(path string) (*mux.Session, error) {
+	return dialNet("unix", path)
 }

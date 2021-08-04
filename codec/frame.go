@@ -6,11 +6,16 @@ import (
 	"io"
 )
 
-// length prefixed frame wrapper codec
+// FrameCodec is a special codec used to actually read/write other
+// codecs to a transport using a length prefix.
 type FrameCodec struct {
 	Codec
 }
 
+// Encoder returns a frame encoder that first encodes a value
+// to a buffer using the embedded codec, prepends the encoded value
+// byte length as a four byte big endian uint32, then writes to
+// the given Writer.
 func (c *FrameCodec) Encoder(w io.Writer) Encoder {
 	return &frameEncoder{
 		w: w,
@@ -40,6 +45,9 @@ func (e *frameEncoder) Encode(v interface{}) error {
 	return nil
 }
 
+// Decoder returns a frame decoder that first reads a four byte frame
+// length value used to read the rest of the frame, then uses the
+// embedded codec to decode those bytes into a value.
 func (c *FrameCodec) Decoder(r io.Reader) Decoder {
 	return &frameDecoder{
 		r: r,
