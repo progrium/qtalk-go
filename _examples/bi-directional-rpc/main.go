@@ -27,6 +27,7 @@ func main() {
 	})
 
 	cli, _ := rpctest.NewPair(h, codec.JSONCodec{})
+	defer cli.Close()
 
 	fmt.Println("echo: hello.")
 	err := stdinloop(cli)
