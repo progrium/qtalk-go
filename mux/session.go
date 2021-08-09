@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/progrium/qmux/golang/codec"
+	"github.com/progrium/qtalk-go/mux/frame"
 )
 
 const (
@@ -31,8 +31,8 @@ type Session struct {
 	t     io.ReadWriteCloser
 	chans chanList
 
-	enc *codec.Encoder
-	dec *codec.Decoder
+	enc *frame.Encoder
+	dec *frame.Decoder
 
 	inbox chan *Channel
 
@@ -48,8 +48,8 @@ func New(t io.ReadWriteCloser) *Session {
 	}
 	s := &Session{
 		t:       t,
-		enc:     codec.NewEncoder(t),
-		dec:     codec.NewDecoder(t),
+		enc:     frame.NewEncoder(t),
+		dec:     frame.NewDecoder(t),
 		inbox:   make(chan *Channel, chanSize),
 		errCond: sync.NewCond(new(sync.Mutex)),
 		closeCh: make(chan bool, 1),
@@ -90,7 +90,7 @@ func (s *Session) Open(ctx context.Context) (*Channel, error) {
 	ch := s.newChannel(channelOutbound)
 	ch.maxIncomingPayload = channelMaxPacket
 
-	if err := s.enc.Encode(codec.OpenMessage{
+	if err := s.enc.Encode(frame.OpenMessage{
 		WindowSize:    ch.myWindow,
 		MaxPacketSize: ch.maxIncomingPayload,
 		SenderID:      ch.localId,
@@ -98,7 +98,7 @@ func (s *Session) Open(ctx context.Context) (*Channel, error) {
 		return nil, err
 	}
 
-	var m codec.Message
+	var m frame.Message
 
 	select {
 	case <-ctx.Done():
@@ -110,9 +110,9 @@ func (s *Session) Open(ctx context.Context) (*Channel, error) {
 	}
 
 	switch msg := m.(type) {
-	case *codec.OpenConfirmMessage:
+	case *frame.OpenConfirmMessage:
 		return ch, nil
-	case *codec.OpenFailureMessage:
+	case *frame.OpenFailureMessage:
 		return nil, fmt.Errorf("qmux: channel open failed on remote side")
 	default:
 		return nil, fmt.Errorf("qmux: unexpected packet in response to channel open: %v", msg)
@@ -125,7 +125,7 @@ func (s *Session) newChannel(direction channelDirection) *Channel {
 		myWindow:  channelWindowSize,
 		pending:   newBuffer(),
 		direction: direction,
-		msg:       make(chan codec.Message, chanSize),
+		msg:       make(chan frame.Message, chanSize),
 		session:   s,
 		packetBuf: make([]byte, 0),
 	}
@@ -157,7 +157,7 @@ func (s *Session) loop() {
 // onePacket reads and processes one packet.
 func (s *Session) onePacket() error {
 	var err error
-	var msg codec.Message
+	var msg frame.Message
 
 	msg, err = s.dec.Decode()
 	if err != nil {
@@ -166,7 +166,7 @@ func (s *Session) onePacket() error {
 
 	id, isChan := msg.Channel()
 	if !isChan {
-		return s.handleOpen(msg.(*codec.OpenMessage))
+		return s.handleOpen(msg.(*frame.OpenMessage))
 	}
 
 	ch := s.chans.getChan(id)
@@ -178,9 +178,9 @@ func (s *Session) onePacket() error {
 }
 
 // handleChannelOpen schedules a channel to be Accept()ed.
-func (s *Session) handleOpen(msg *codec.OpenMessage) error {
+func (s *Session) handleOpen(msg *frame.OpenMessage) error {
 	if msg.MaxPacketSize < minPacketLength || msg.MaxPacketSize > maxPacketLength {
-		return s.enc.Encode(codec.OpenFailureMessage{
+		return s.enc.Encode(frame.OpenFailureMessage{
 			ChannelID: msg.SenderID,
 		})
 	}
@@ -192,7 +192,7 @@ func (s *Session) handleOpen(msg *codec.OpenMessage) error {
 	c.maxIncomingPayload = channelMaxPacket
 	s.inbox <- c
 
-	return s.enc.Encode(codec.OpenConfirmMessage{
+	return s.enc.Encode(frame.OpenConfirmMessage{
 		ChannelID:     c.remoteId,
 		SenderID:      c.localId,
 		WindowSize:    c.myWindow,

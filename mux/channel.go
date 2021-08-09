@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/progrium/qmux/golang/codec"
+	"github.com/progrium/qtalk-go/mux/frame"
 )
 
 type channelDirection uint8
@@ -44,7 +44,7 @@ type Channel struct {
 	direction channelDirection
 
 	// Pending internal channel messages.
-	msg chan codec.Message
+	msg chan frame.Message
 
 	sentEOF bool
 
@@ -77,14 +77,14 @@ func (ch *Channel) ID() uint32 {
 // The other side may still send data
 func (ch *Channel) CloseWrite() error {
 	ch.sentEOF = true
-	return ch.send(codec.EOFMessage{
+	return ch.send(frame.EOFMessage{
 		ChannelID: ch.remoteId})
 }
 
 // Close signals end of channel use. No data may be sent after this
 // call.
 func (ch *Channel) Close() error {
-	return ch.send(codec.CloseMessage{
+	return ch.send(frame.CloseMessage{
 		ChannelID: ch.remoteId})
 }
 
@@ -102,7 +102,7 @@ func (ch *Channel) Write(data []byte) (n int, err error) {
 
 		toSend := data[:space]
 
-		if err = ch.session.enc.Encode(codec.DataMessage{
+		if err = ch.session.enc.Encode(frame.DataMessage{
 			ChannelID: ch.remoteId,
 			Length:    uint32(len(toSend)),
 			Data:      toSend,
@@ -134,9 +134,9 @@ func (c *Channel) Read(data []byte) (n int, err error) {
 	return n, err
 }
 
-// writePacket sends a packet. If the packet is a channel close, it updates
+// sends writes a message frame. If the message is a channel close, it updates
 // sentClose. This method takes the lock c.writeMu.
-func (ch *Channel) send(msg interface{}) error {
+func (ch *Channel) send(msg frame.Message) error {
 	ch.writeMu.Lock()
 	defer ch.writeMu.Unlock()
 
@@ -144,7 +144,7 @@ func (ch *Channel) send(msg interface{}) error {
 		return io.EOF
 	}
 
-	if _, ok := msg.(codec.CloseMessage); ok {
+	if _, ok := msg.(frame.CloseMessage); ok {
 		ch.sentClose = true
 	}
 
@@ -157,7 +157,7 @@ func (c *Channel) adjustWindow(n uint32) error {
 	// the initial window setting, we don't worry about overflow.
 	c.myWindow += uint32(n)
 	c.windowMu.Unlock()
-	return c.send(codec.WindowAdjustMessage{
+	return c.send(frame.WindowAdjustMessage{
 		ChannelID:       c.remoteId,
 		AdditionalBytes: uint32(n),
 	})
@@ -185,30 +185,30 @@ func (ch *Channel) responseMessageReceived() error {
 	return nil
 }
 
-func (ch *Channel) handle(msg codec.Message) error {
+func (ch *Channel) handle(msg frame.Message) error {
 	switch m := msg.(type) {
-	case *codec.DataMessage:
+	case *frame.DataMessage:
 		return ch.handleData(m)
 
-	case *codec.CloseMessage:
-		ch.send(codec.CloseMessage{
+	case *frame.CloseMessage:
+		ch.send(frame.CloseMessage{
 			ChannelID: ch.remoteId,
 		})
 		ch.session.chans.remove(ch.localId)
 		ch.close()
 		return nil
 
-	case *codec.EOFMessage:
+	case *frame.EOFMessage:
 		ch.pending.eof()
 		return nil
 
-	case *codec.WindowAdjustMessage:
+	case *frame.WindowAdjustMessage:
 		if !ch.remoteWin.add(m.AdditionalBytes) {
 			return fmt.Errorf("qmux: invalid window update for %d bytes", m.AdditionalBytes)
 		}
 		return nil
 
-	case *codec.OpenConfirmMessage:
+	case *frame.OpenConfirmMessage:
 		if err := ch.responseMessageReceived(); err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ func (ch *Channel) handle(msg codec.Message) error {
 		ch.msg <- m
 		return nil
 
-	case *codec.OpenFailureMessage:
+	case *frame.OpenFailureMessage:
 		if err := ch.responseMessageReceived(); err != nil {
 			return err
 		}
@@ -234,7 +234,7 @@ func (ch *Channel) handle(msg codec.Message) error {
 	}
 }
 
-func (ch *Channel) handleData(msg *codec.DataMessage) error {
+func (ch *Channel) handleData(msg *frame.DataMessage) error {
 	if msg.Length > ch.maxIncomingPayload {
 		// TODO(hanwen): should send Disconnect?
 		return errors.New("qmux: incoming packet exceeds maximum payload size")
