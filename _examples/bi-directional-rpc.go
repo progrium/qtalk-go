@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/rpc"
-	"github.com/progrium/qtalk-go/rpc/rpctest"
+	"github.com/progrium/qtalk-go/transport"
 )
 
 type Ping struct {
@@ -26,7 +27,7 @@ func main() {
 		res.Return(reverse(p.Message))
 	})
 
-	cli, _ := rpctest.NewPair(h, codec.JSONCodec{})
+	cli, _ := newpair(h, codec.JSONCodec{})
 	defer cli.Close()
 
 	fmt.Println("echo: hello.")
@@ -46,7 +47,7 @@ func stdinloop(cli *rpc.Client) error {
 		pong := &Ping{}
 
 		fmt.Println("send: ", ping.Message)
-		res, err := cli.Call(ctx, "selector", ping, pong)
+		res, err := cli.Call(ctx, "", ping, pong)
 		if err != nil {
 			return err
 		}
@@ -64,4 +65,19 @@ func reverse(s string) *Ping {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
 	return &Ping{Message: string(runes)}
+}
+
+func newpair(handler rpc.Handler, codec codec.Codec) (*rpc.Client, *rpc.Server) {
+	ar, bw := io.Pipe()
+	br, aw := io.Pipe()
+	sessA, _ := transport.DialIO(aw, ar)
+	sessB, _ := transport.DialIO(bw, br)
+
+	srv := &rpc.Server{
+		Codec:   codec,
+		Handler: handler,
+	}
+	go srv.Respond(sessA)
+
+	return rpc.NewClient(sessB, codec), srv
 }
