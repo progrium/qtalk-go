@@ -3,6 +3,7 @@ package rpc
 import (
 	"io"
 	"log"
+	"sync"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/mux"
@@ -13,6 +14,7 @@ import (
 type Server struct {
 	Handler Handler
 	Codec   codec.Codec
+	once    sync.Once
 }
 
 // Serve will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
@@ -67,9 +69,11 @@ func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
 		header: header,
 	}
 
-	if s.Handler == nil {
-		s.Handler = NewRespondMux()
-	}
+	s.once.Do(func() {
+		if s.Handler == nil {
+			s.Handler = NewRespondMux()
+		}
+	})
 
 	s.Handler.RespondRPC(resp, &call)
 	if !resp.responded {
