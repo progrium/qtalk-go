@@ -56,6 +56,7 @@ func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
 		return
 	}
 
+	call.Selector = cleanSelector(call.Selector)
 	call.Decoder = dec
 	call.Caller = &Client{
 		Session: sess,
