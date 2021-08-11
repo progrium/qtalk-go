@@ -73,6 +73,7 @@ func newClient() *rpc.Client {
 
 	codec := codec.JSONCodec{}
 	mux := rpc.NewRespondMux()
+	mux.Handle(BiDirectionalCallbacks, newBiDirectionalCallbacksHandler())
 	mux.Handle(BiDirectionalRPC, newBiDirectionalRPCHandler())
 
 	srv := &rpc.Server{
@@ -88,5 +89,6 @@ var runnable map[string]func(*rpc.Client)
 
 func init() {
 	runnable = make(map[string]func(*rpc.Client))
+	runnable[BiDirectionalCallbacks] = runBiDirectionalCallbacks
 	runnable[BiDirectionalRPC] = runBiDirectionalRPC
 }
