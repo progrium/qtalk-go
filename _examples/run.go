@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/peer"
+	"github.com/progrium/qtalk-go/rpc"
 	"github.com/progrium/qtalk-go/transport"
 )
 
@@ -26,7 +28,8 @@ func main() {
 
 // Ping is a sample datatype to pass through a json codec.
 type Ping struct {
-	Message string `json:"msg"`
+	Message string            `json:"msg"`
+	Args    map[string]string `json:"args"`
 }
 
 func reverse(s string) string {
@@ -66,6 +69,27 @@ func printRunnable() {
 		keys = append(keys, key)
 	}
 	fmt.Printf("give an example to run:\n%s\n", strings.Join(keys, ", "))
+}
+
+func callCallback(ctx context.Context, caller rpc.Caller, params *Ping, selector string) (string, error) {
+	reply := &Ping{}
+	_, err := caller.Call(ctx, selector, params, reply)
+	if err != nil {
+		return "", err
+	}
+	return reply.Message, nil
+}
+
+func callCallbacks(ctx context.Context, caller rpc.Caller, msg string, selectors ...string) (*Ping, error) {
+	pong := &Ping{Message: msg, Args: make(map[string]string)}
+	for _, sel := range selectors {
+		value, err := callCallback(ctx, caller, pong, sel)
+		if err != nil {
+			return pong, err
+		}
+		pong.Args[sel] = value
+	}
+	return pong, nil
 }
 
 func newPeers() (*peer.Peer, *peer.Peer) {
