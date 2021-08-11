@@ -67,8 +67,7 @@ func runRPC(local, remote *peer.Peer) {
 
 	fmt.Printf("[%s]\necho: hello.\n", RunRPC)
 	err := StdinLoop(func(ping, pong *Ping) error {
-		_, err := local.Call(ctx, RunRPC, ping, pong)
-		if err != nil {
+		if _, err := local.Call(ctx, RunRPC, ping, pong); err != nil {
 			fmt.Println("client call err: ", err)
 			return err
 		}
