@@ -21,6 +21,9 @@ import (
 // In the latter case, the value is returned if the error is nil, otherwise just the
 // error is returned. Handlers based on functions that return more than two values will
 // simply ignore the remaining values.
+//
+// Structs that implement the Handler interface will be added as a catch-all handler
+// along with their individual methods. This lets you implement dynamic methods.
 func HandlerFrom(v interface{}) rpc.Handler {
 	rv := reflect.Indirect(reflect.ValueOf(v))
 	switch rv.Type().Kind() {
@@ -38,6 +41,10 @@ func fromMethods(rcvr interface{}) rpc.Handler {
 	mux := rpc.NewRespondMux()
 	for i := 0; i < t.NumMethod(); i++ {
 		mux.Handle(t.Method(i).Name, fromFunc(t.Method(i).Func.Interface(), rcvr))
+	}
+	h, ok := rcvr.(rpc.Handler)
+	if ok {
+		mux.Handle("/", h)
 	}
 	return mux
 }
