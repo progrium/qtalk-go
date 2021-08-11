@@ -149,6 +149,6 @@ var runnable2 map[string]func(*peer.Peer, *peer.Peer)
 
 func init() {
 	runnable2 = make(map[string]func(*peer.Peer, *peer.Peer))
-	runnable2[RunCallbacks] = runCallbacks
-	runnable2[RunRPC] = runRPC
+	runnable2["callbacks"] = runCallbacks
+	runnable2["rpc"] = runRPC
 }

@@ -11,7 +11,7 @@ import (
 func runCallbacks(local, remote *peer.Peer) {
 	ctx := context.TODO()
 
-	remote.Handle(RunCallbacks, rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
+	remote.Handle("callbacks", rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
 		p := &Ping{}
 		if err := call.Receive(p); err != nil {
 			res.Return(fmt.Errorf("ping err: %+v", err))
@@ -21,9 +21,9 @@ func runCallbacks(local, remote *peer.Peer) {
 		res.Return(&Ping{Message: reverse(p.Message)})
 	}))
 
-	fmt.Printf("[%s]\necho: hello.\n", RunCallbacks)
+	fmt.Println("[callbacks example]\necho: hello.")
 	err := StdinLoop(func(ping, pong *Ping) error {
-		if _, err := local.Call(ctx, RunCallbacks, ping, pong); err != nil {
+		if _, err := local.Call(ctx, "callbacks", ping, pong); err != nil {
 			return err
 		}
 
@@ -35,5 +35,3 @@ func runCallbacks(local, remote *peer.Peer) {
 		fmt.Printf("err: %+v\n", err)
 	}
 }
-
-const RunCallbacks = "callbacks"

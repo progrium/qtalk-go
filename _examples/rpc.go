@@ -40,7 +40,7 @@ func runRPC(local, remote *peer.Peer) {
 	}
 
 	// teach remote peer to handle rpc selector
-	remote.Handle(RunRPC, rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
+	remote.Handle("rpc", rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
 		p := &Ping{}
 
 		if err := call.Receive(p); err != nil {
@@ -65,17 +65,17 @@ func runRPC(local, remote *peer.Peer) {
 		return fmt.Sprintf("%x", hs.Sum(nil)), nil
 	})
 
-	fmt.Printf("[%s]\necho: hello.\n", RunRPC)
+	fmt.Println("[rpc example]\necho: hello.")
 	err := StdinLoop(func(ping, pong *Ping) error {
-		if _, err := local.Call(ctx, RunRPC, ping, pong); err != nil {
+		if _, err := local.Call(ctx, "rpc", ping, pong); err != nil {
 			fmt.Println("client call err: ", err)
 			return err
 		}
 
-		fmt.Println(">> echo:     ", pong.Message)
-		fmt.Println(" > md5:    ", pong.Args["md5"])
-		fmt.Println(" > sha1:   ", pong.Args["sha1"])
-		fmt.Println(" > sha256: ", pong.Args["sha256"])
+		fmt.Println("<< echo:   ", pong.Message)
+		fmt.Println(" < md5:    ", pong.Args["md5"])
+		fmt.Println(" < sha1:   ", pong.Args["sha1"])
+		fmt.Println(" < sha256: ", pong.Args["sha256"])
 		return nil
 	})
 	if err != nil {
@@ -94,5 +94,3 @@ func newHash(selector string) hash.Hash {
 	}
 	return nil
 }
-
-const RunRPC = "rpc"
