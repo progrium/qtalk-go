@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/progrium/qtalk-go/peer"
 	"github.com/progrium/qtalk-go/rpc"
 )
 
-func newBiDirectionalRPCHandler() rpc.Handler {
-	return rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
+func runCallbacks(local, remote *peer.Peer) {
+	remote.Handle(RunCallbacks, rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
 		p := &Ping{}
 		if err := call.Receive(p); err != nil {
 			res.Return(fmt.Errorf("ping err: %+v", err))
@@ -18,11 +19,9 @@ func newBiDirectionalRPCHandler() rpc.Handler {
 		}
 
 		res.Return(&Ping{Message: reverse(p.Message)})
-	})
-}
+	}))
 
-func runBiDirectionalRPC(cli *rpc.Client) {
-	stdinloop := func(cli *rpc.Client) error {
+	stdinloop := func(cli *peer.Peer) error {
 		scanner := bufio.NewScanner(os.Stdin)
 
 		fmt.Print(">>> ")
@@ -31,7 +30,7 @@ func runBiDirectionalRPC(cli *rpc.Client) {
 			pong := &Ping{}
 
 			fmt.Println("send: ", ping.Message)
-			res, err := cli.Call(context.TODO(), BiDirectionalRPC, ping, pong)
+			res, err := cli.Call(context.TODO(), RunCallbacks, ping, pong)
 			if err != nil {
 				return err
 			}
@@ -43,11 +42,11 @@ func runBiDirectionalRPC(cli *rpc.Client) {
 		return scanner.Err()
 	}
 
-	fmt.Printf("[%s]\necho: hello.\n", BiDirectionalRPC)
-	err := stdinloop(cli)
+	fmt.Printf("[%s]\necho: hello.\n", RunCallbacks)
+	err := stdinloop(local)
 	if err != nil {
 		fmt.Printf("err: %+v\n", err)
 	}
 }
 
-const BiDirectionalRPC = "bi-directional-rpc"
+const RunCallbacks = "callbacks"

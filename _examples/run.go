@@ -7,17 +7,20 @@ import (
 	"strings"
 
 	"github.com/progrium/qtalk-go/codec"
-	"github.com/progrium/qtalk-go/rpc"
+	"github.com/progrium/qtalk-go/peer"
 	"github.com/progrium/qtalk-go/transport"
 )
 
 // $ go run _examples/*.go [example]
 func main() {
-	cli := newClient()
-	defer cli.Close()
+	peer1, peer2 := newPeers()
+	defer peer1.Close()
+	defer peer2.Close()
+	go peer1.Respond()
+	go peer2.Respond()
 
 	for _, runner := range cliArgs() {
-		runner(cli)
+		runner(peer1, peer2)
 	}
 }
 
@@ -34,16 +37,16 @@ func reverse(s string) string {
 	return string(runes)
 }
 
-func cliArgs() map[string]func(*rpc.Client) {
+func cliArgs() map[string]func(*peer.Peer, *peer.Peer) {
 	count := len(os.Args)
 	if count < 2 {
 		printRunnable()
 		os.Exit(1)
 	}
 
-	h := make(map[string]func(*rpc.Client))
+	h := make(map[string]func(*peer.Peer, *peer.Peer))
 	for i := 1; i < count; i++ {
-		if fn, ok := runnable[os.Args[i]]; ok {
+		if fn, ok := runnable2[os.Args[i]]; ok {
 			h[os.Args[i]] = fn
 			continue
 		}
@@ -58,37 +61,27 @@ func cliArgs() map[string]func(*rpc.Client) {
 }
 
 func printRunnable() {
-	keys := make([]string, 0, len(runnable))
-	for key := range runnable {
+	keys := make([]string, 0, len(runnable2))
+	for key := range runnable2 {
 		keys = append(keys, key)
 	}
 	fmt.Printf("give an example to run:\n%s\n", strings.Join(keys, ", "))
 }
 
-func newClient() *rpc.Client {
+func newPeers() (*peer.Peer, *peer.Peer) {
 	ar, bw := io.Pipe()
 	br, aw := io.Pipe()
 	sessA, _ := transport.DialIO(aw, ar)
 	sessB, _ := transport.DialIO(bw, br)
 
-	codec := codec.JSONCodec{}
-	mux := rpc.NewRespondMux()
-	mux.Handle(BiDirectionalCallbacks, newBiDirectionalCallbacksHandler())
-	mux.Handle(BiDirectionalRPC, newBiDirectionalRPCHandler())
-
-	srv := &rpc.Server{
-		Codec:   codec,
-		Handler: mux,
-	}
-	go srv.Respond(sessA)
-
-	return rpc.NewClient(sessB, codec)
+	js := codec.JSONCodec{}
+	return peer.New(sessA, js), peer.New(sessB, js)
 }
 
-var runnable map[string]func(*rpc.Client)
+var runnable2 map[string]func(*peer.Peer, *peer.Peer)
 
 func init() {
-	runnable = make(map[string]func(*rpc.Client))
-	runnable[BiDirectionalCallbacks] = runBiDirectionalCallbacks
-	runnable[BiDirectionalRPC] = runBiDirectionalRPC
+	runnable2 = make(map[string]func(*peer.Peer, *peer.Peer))
+	runnable2[RunCallbacks] = runCallbacks
+	runnable2[RunRPC] = runRPC
 }
