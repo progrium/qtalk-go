@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -23,8 +24,10 @@ func main() {
 	go peer1.Respond()
 	go peer2.Respond()
 
-	for _, runner := range cliArgs() {
-		runner(peer1, peer2)
+	for example, run := range cliArgs() {
+		if err := run(peer1, peer2); err != nil {
+			log.Fatalf("error running %s example: %+v", example, err)
+		}
 	}
 }
 
@@ -36,19 +39,15 @@ type Ping struct {
 
 // CallCallbacks passes the message to the caller with the given selectors.
 func CallCallbacks(ctx context.Context, caller rpc.Caller, msg string, selectors ...string) (*Ping, error) {
-	call := func(selector string, params *Ping) (string, error) {
-		pong := &Ping{}
-		_, err := caller.Call(ctx, selector, params, pong)
-		return pong.Message, err
-	}
-
 	pong := &Ping{Message: msg, Args: make(map[string]string)}
-	for _, sel := range selectors {
-		value, err := call(sel, pong)
+	for _, selector := range selectors {
+		selpong := &Ping{}
+		_, err := caller.Call(ctx, selector, pong, selpong)
 		if err != nil {
 			return pong, err
 		}
-		pong.Args[sel] = value
+
+		pong.Args[selector] = selpong.Message
 	}
 	return pong, nil
 }
@@ -104,16 +103,16 @@ func reverse(s string) string {
 	return string(runes)
 }
 
-func cliArgs() map[string]func(*peer.Peer, *peer.Peer) {
+func cliArgs() map[string]func(*peer.Peer, *peer.Peer) error {
 	count := len(os.Args)
 	if count < 2 {
 		printRunnable()
 		os.Exit(1)
 	}
 
-	h := make(map[string]func(*peer.Peer, *peer.Peer))
+	h := make(map[string]func(*peer.Peer, *peer.Peer) error)
 	for i := 1; i < count; i++ {
-		if fn, ok := runnable2[os.Args[i]]; ok {
+		if fn, ok := examples[os.Args[i]]; ok {
 			h[os.Args[i]] = fn
 			continue
 		}
@@ -128,8 +127,8 @@ func cliArgs() map[string]func(*peer.Peer, *peer.Peer) {
 }
 
 func printRunnable() {
-	keys := make([]string, 0, len(runnable2))
-	for key := range runnable2 {
+	keys := make([]string, 0, len(examples))
+	for key := range examples {
 		keys = append(keys, key)
 	}
 	fmt.Printf("give an example to run:\n%s\n", strings.Join(keys, ", "))
@@ -145,10 +144,10 @@ func newPeers() (*peer.Peer, *peer.Peer) {
 	return peer.New(sessA, js), peer.New(sessB, js)
 }
 
-var runnable2 map[string]func(*peer.Peer, *peer.Peer)
+var examples map[string]func(*peer.Peer, *peer.Peer) error
 
 func init() {
-	runnable2 = make(map[string]func(*peer.Peer, *peer.Peer))
-	runnable2["callbacks"] = runCallbacks
-	runnable2["rpc"] = runRPC
+	examples = make(map[string]func(*peer.Peer, *peer.Peer) error)
+	examples["callbacks"] = runCallbacks
+	examples["rpc"] = runRPC
 }

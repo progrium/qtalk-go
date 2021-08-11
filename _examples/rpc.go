@@ -13,7 +13,7 @@ import (
 	"github.com/progrium/qtalk-go/rpc"
 )
 
-func runRPC(local, remote *peer.Peer) {
+func runRPC(local, remote *peer.Peer) error {
 	// this local peer exposes selectors for hashing.
 	selectors := []string{"md5", "sha1", "sha256"}
 	ctx := context.TODO()
@@ -22,8 +22,8 @@ func runRPC(local, remote *peer.Peer) {
 	defer close(jobs)
 
 	// teach local peer how to handle hash selectors
-	for _, kind := range selectors {
-		local.Handle(kind, rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
+	for _, selector := range selectors {
+		local.Handle(selector, rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
 			p := &Ping{}
 			if err := call.Receive(p); err != nil {
 				res.Return(fmt.Errorf("ping err: %+v", err))
@@ -66,7 +66,7 @@ func runRPC(local, remote *peer.Peer) {
 	})
 
 	fmt.Println("[rpc example]\necho: hello.")
-	err := StdinLoop(func(ping, pong *Ping) error {
+	return StdinLoop(func(ping, pong *Ping) error {
 		if _, err := local.Call(ctx, "rpc", ping, pong); err != nil {
 			fmt.Println("client call err: ", err)
 			return err
@@ -78,9 +78,6 @@ func runRPC(local, remote *peer.Peer) {
 		fmt.Println(" < sha256: ", pong.Args["sha256"])
 		return nil
 	})
-	if err != nil {
-		fmt.Printf("err: %+v\n", err)
-	}
 }
 
 func newHash(selector string) hash.Hash {

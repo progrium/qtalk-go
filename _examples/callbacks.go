@@ -8,7 +8,7 @@ import (
 	"github.com/progrium/qtalk-go/rpc"
 )
 
-func runCallbacks(local, remote *peer.Peer) {
+func runCallbacks(local, remote *peer.Peer) error {
 	ctx := context.TODO()
 
 	remote.Handle("callbacks", rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
@@ -22,7 +22,7 @@ func runCallbacks(local, remote *peer.Peer) {
 	}))
 
 	fmt.Println("[callbacks example]\necho: hello.")
-	err := StdinLoop(func(ping, pong *Ping) error {
+	return StdinLoop(func(ping, pong *Ping) error {
 		if _, err := local.Call(ctx, "callbacks", ping, pong); err != nil {
 			return err
 		}
@@ -30,8 +30,4 @@ func runCallbacks(local, remote *peer.Peer) {
 		fmt.Println("echo: ", pong.Message)
 		return nil
 	})
-
-	if err != nil {
-		fmt.Printf("err: %+v\n", err)
-	}
 }
