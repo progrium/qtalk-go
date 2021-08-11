@@ -26,10 +26,35 @@ func main() {
 	}
 }
 
-// Ping is a sample datatype to pass through a json codec.
+// Ping represents a simple value.
 type Ping struct {
 	Message string            `json:"msg"`
 	Args    map[string]string `json:"args"`
+}
+
+// Job represents a task for a peer's background workers.
+type Job struct {
+	Message  string
+	Selector string
+}
+
+// StartWorkers runs a number of workers with the given fn in a goroutine.
+func StartWorkers(num int, jobs <-chan Job, results chan<- string, fn func(job Job) (string, error)) {
+	for id := 1; id <= num; id++ {
+		go RunWorker(id, jobs, results, fn)
+	}
+}
+
+// RunWorker runs a task from the job channel with the given fn.
+func RunWorker(id int, jobs <-chan Job, results chan<- string, fn func(job Job) (string, error)) {
+	for job := range jobs {
+		fmt.Printf("worker %d: sel %q, job %q\n", id, job.Selector, job.Message)
+		res, err := fn(job)
+		if err != nil {
+			fmt.Printf("worker %d: sel %q, job %q // %+v\n", id, job.Selector, job.Message, err)
+		}
+		results <- res
+	}
 }
 
 func reverse(s string) string {
