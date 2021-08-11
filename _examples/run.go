@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -32,6 +33,25 @@ type Ping struct {
 	Args    map[string]string `json:"args"`
 }
 
+// CallCallbacks passes the message to the caller with the given selectors.
+func CallCallbacks(ctx context.Context, caller rpc.Caller, msg string, selectors ...string) (*Ping, error) {
+	call := func(selector string, params *Ping) (string, error) {
+		pong := &Ping{}
+		_, err := caller.Call(ctx, selector, params, pong)
+		return pong.Message, err
+	}
+
+	pong := &Ping{Message: msg, Args: make(map[string]string)}
+	for _, sel := range selectors {
+		value, err := call(sel, pong)
+		if err != nil {
+			return pong, err
+		}
+		pong.Args[sel] = value
+	}
+	return pong, nil
+}
+
 // Job represents a task for a peer's background workers.
 type Job struct {
 	Message  string
@@ -55,6 +75,22 @@ func RunWorker(id int, jobs <-chan Job, results chan<- string, fn func(job Job) 
 		}
 		results <- res
 	}
+}
+
+// StdinLoop passes new console messages to the given fn.
+func StdinLoop(fn func(ping, pong *Ping) error) error {
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print(">>> ")
+
+	for scanner.Scan() {
+		ping := &Ping{Message: scanner.Text()}
+		pong := &Ping{}
+
+		fmt.Println("send: ", ping.Message)
+		fn(ping, pong)
+		fmt.Print(">>> ")
+	}
+	return scanner.Err()
 }
 
 func reverse(s string) string {
@@ -94,27 +130,6 @@ func printRunnable() {
 		keys = append(keys, key)
 	}
 	fmt.Printf("give an example to run:\n%s\n", strings.Join(keys, ", "))
-}
-
-func callCallback(ctx context.Context, caller rpc.Caller, params *Ping, selector string) (string, error) {
-	reply := &Ping{}
-	_, err := caller.Call(ctx, selector, params, reply)
-	if err != nil {
-		return "", err
-	}
-	return reply.Message, nil
-}
-
-func callCallbacks(ctx context.Context, caller rpc.Caller, msg string, selectors ...string) (*Ping, error) {
-	pong := &Ping{Message: msg, Args: make(map[string]string)}
-	for _, sel := range selectors {
-		value, err := callCallback(ctx, caller, pong, sel)
-		if err != nil {
-			return pong, err
-		}
-		pong.Args[sel] = value
-	}
-	return pong, nil
 }
 
 func newPeers() (*peer.Peer, *peer.Peer) {
