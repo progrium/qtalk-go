@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/peer"
@@ -68,11 +69,13 @@ func StartWorkers(num int, jobs <-chan Job, results chan<- string, fn func(job J
 // RunWorker runs a task from the job channel with the given fn.
 func RunWorker(id int, jobs <-chan Job, results chan<- string, fn func(job Job) (string, error)) {
 	for job := range jobs {
-		fmt.Printf("worker %d: sel %q, job %q\n", id, job.Selector, job.Message)
+		start := time.Now()
+		fmt.Printf("worker %d: sel %q, job %q ", id, job.Selector, job.Message)
 		res, err := fn(job)
 		if err != nil {
-			fmt.Printf("worker %d: sel %q, job %q // %+v\n", id, job.Selector, job.Message, err)
+			fmt.Printf("err %+v ", err)
 		}
+		fmt.Printf("// %s\n", time.Since(start))
 		results <- res
 	}
 }
