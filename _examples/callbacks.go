@@ -14,7 +14,7 @@ func runCallbacks(local, remote *peer.Peer) error {
 	remote.Handle("callbacks", rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
 		p := &Ping{}
 		if err := call.Receive(p); err != nil {
-			res.Return(fmt.Errorf("ping err: %+v", err))
+			res.Return(fmt.Errorf("remote recv err: %+v", err))
 			return
 		}
 
@@ -27,7 +27,7 @@ func runCallbacks(local, remote *peer.Peer) error {
 			return err
 		}
 
-		fmt.Println("echo: ", pong.Message)
+		fmt.Println("<< echo: ", pong.Message)
 		return nil
 	})
 }

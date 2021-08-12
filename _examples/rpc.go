@@ -26,7 +26,7 @@ func runRPC(local, remote *peer.Peer) error {
 		local.Handle(selector, rpc.HandlerFunc(func(res rpc.Responder, call *rpc.Call) {
 			p := &Ping{}
 			if err := call.Receive(p); err != nil {
-				res.Return(fmt.Errorf("ping err: %+v", err))
+				res.Return(fmt.Errorf("local recv err: %+v", err))
 				return
 			}
 
@@ -44,18 +44,18 @@ func runRPC(local, remote *peer.Peer) error {
 		p := &Ping{}
 
 		if err := call.Receive(p); err != nil {
-			res.Return(fmt.Errorf("ping err: %+v", err))
+			res.Return(fmt.Errorf("remote recv err: %+v", err))
 			return
 		}
 
 		// reverse the given message, pass to all selectors for hashing
 		pong, err := CallCallbacks(ctx, call.Caller, reverse(p.Message), selectors...)
 		if err != nil {
-			res.Return(fmt.Errorf("ping err: %+v", err))
+			res.Return(fmt.Errorf("remote callback err: %+v", err))
 		}
 
 		if err := res.Return(pong); err != nil {
-			fmt.Printf("error returning: %+v\n", err)
+			fmt.Printf("remote return err: %+v\n", err)
 		}
 	}))
 
@@ -68,7 +68,7 @@ func runRPC(local, remote *peer.Peer) error {
 	fmt.Println("[rpc example]\necho: hello.")
 	return StdinLoop(func(ping, pong *Ping) error {
 		if _, err := local.Call(ctx, "rpc", ping, pong); err != nil {
-			fmt.Println("client call err: ", err)
+			fmt.Println("local call err: ", err)
 			return err
 		}
 

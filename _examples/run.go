@@ -84,13 +84,19 @@ func StdinLoop(fn func(ping, pong *Ping) error) error {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print(">>> ")
 
+	var ping, pong *Ping
+	var err error
 	for scanner.Scan() {
-		ping := &Ping{Message: scanner.Text()}
-		pong := &Ping{}
+		ping = &Ping{Message: scanner.Text()}
+		pong = &Ping{}
 
 		fmt.Println("send: ", ping.Message)
-		fn(ping, pong)
+		err = fn(ping, pong)
 		fmt.Print(">>> ")
+
+		if err != nil {
+			return err
+		}
 	}
 	return scanner.Err()
 }
