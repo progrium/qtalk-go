@@ -156,4 +156,5 @@ func init() {
 	examples = make(map[string]func(*peer.Peer, *peer.Peer) error)
 	examples["callbacks"] = runCallbacks
 	examples["rpc"] = runRPC
+	examples["streaming"] = runStreaming
 }
