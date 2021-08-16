@@ -14,7 +14,8 @@ import (
 type Server struct {
 	Handler Handler
 	Codec   codec.Codec
-	once    sync.Once
+
+	once sync.Once
 }
 
 // Serve will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
