@@ -16,7 +16,7 @@ import (
 // Function handlers expect an array to use as arguments. If the incoming argument
 // array is too large or too small, the handler returns an error. Functions can opt-in
 // to take a final Call pointer argument, allowing the handler to give it the Call value
-// being processed. Functions can return nothing which the handler returns as nil,
+// being processed. Functions can return nothing which the handler returns as nil, or
 // a single value which can be an error, or two values where one value is an error.
 // In the latter case, the value is returned if the error is nil, otherwise just the
 // error is returned. Handlers based on functions that return more than two values will
