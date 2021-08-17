@@ -1,5 +1,3 @@
-github.com/progrium/qmux/golang v0.0.0-20210527154343-f574df18313e h1:nzccDlj0DY6ZwKHbxwYz9CzII6D8bLyXhlNjk4ll2So=
-github.com/progrium/qmux/golang v0.0.0-20210527154343-f574df18313e/go.mod h1:Z2EPtydgPrcZxO50GhkzTGgdWjA5PPHsZkoq6KTxPVE=
 github.com/rs/xid v1.3.0 h1:6NjYksEUlhurdVehpc7S7dk6DAmcKv8V9gG0FsVN2U4=
 github.com/rs/xid v1.3.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 golang.org/x/net v0.0.0-20210420210106-798c2154c571 h1:Q6Bg8xzKzpFPU4Oi1sBnBTHBwlMsLeEXpu4hYBY8rAg=
