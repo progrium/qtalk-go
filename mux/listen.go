@@ -1,6 +1,4 @@
-package transport
-
-import "github.com/progrium/qtalk-go/mux"
+package mux
 
 // A Listener is similar to a net.Listener but returns connections wrapped as mux sessions.
 type Listener interface {
@@ -9,5 +7,5 @@ type Listener interface {
 	Close() error
 
 	// Accept waits for and returns the next incoming session.
-	Accept() (*mux.Session, error)
+	Accept() (*Session, error)
 }

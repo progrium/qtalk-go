@@ -1,11 +1,10 @@
-package peer
+package talk
 
 import (
 	"fmt"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/mux"
-	"github.com/progrium/qtalk-go/transport"
 )
 
 // A Dialer connects to address and establishes a mux.Session
@@ -17,11 +16,11 @@ var Dialers map[string]Dialer
 
 func init() {
 	Dialers = map[string]Dialer{
-		"tcp":  transport.DialTCP,
-		"unix": transport.DialUnix,
-		"ws":   transport.DialWS,
+		"tcp":  mux.DialTCP,
+		"unix": mux.DialUnix,
+		"ws":   mux.DialWS,
 		"stdio": func(_ string) (*mux.Session, error) {
-			return transport.DialStdio()
+			return mux.DialStdio()
 		},
 	}
 }
@@ -38,5 +37,5 @@ func Dial(transport, addr string, codec codec.Codec) (*Peer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return New(sess, codec), nil
+	return NewPeer(sess, codec), nil
 }

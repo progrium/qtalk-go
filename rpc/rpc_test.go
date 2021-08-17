@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/progrium/qtalk-go/codec"
-	"github.com/progrium/qtalk-go/transport"
+	"github.com/progrium/qtalk-go/mux"
 )
 
 func fatal(t *testing.T, err error) {
@@ -21,8 +21,8 @@ func fatal(t *testing.T, err error) {
 func newTestPair(handler Handler) (*Client, *Server) {
 	ar, bw := io.Pipe()
 	br, aw := io.Pipe()
-	sessA, _ := transport.DialIO(aw, ar)
-	sessB, _ := transport.DialIO(bw, br)
+	sessA, _ := mux.DialIO(aw, ar)
+	sessB, _ := mux.DialIO(bw, br)
 
 	srv := &Server{
 		Codec:   codec.JSONCodec{},

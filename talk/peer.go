@@ -1,4 +1,4 @@
-package peer
+package talk
 
 import (
 	"github.com/progrium/qtalk-go/codec"
@@ -14,8 +14,8 @@ type Peer struct {
 	codec.Codec
 }
 
-// New returns a Peer based on a session and codec.
-func New(session *mux.Session, codec codec.Codec) *Peer {
+// NewPeer returns a Peer based on a session and codec.
+func NewPeer(session *mux.Session, codec codec.Codec) *Peer {
 	return &Peer{
 		Session:    session,
 		Codec:      codec,

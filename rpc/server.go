@@ -3,11 +3,11 @@ package rpc
 import (
 	"io"
 	"log"
+	"net"
 	"sync"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/mux"
-	"github.com/progrium/qtalk-go/transport"
 )
 
 // Server wraps a Handler and codec to respond to RPC calls.
@@ -18,8 +18,8 @@ type Server struct {
 	once sync.Once
 }
 
-// Serve will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
-func (s *Server) Serve(l transport.Listener) error {
+// ServeMux will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
+func (s *Server) ServeMux(l mux.Listener) error {
 	for {
 		sess, err := l.Accept()
 		if err != nil {
@@ -27,6 +27,11 @@ func (s *Server) Serve(l transport.Listener) error {
 		}
 		go s.Respond(sess)
 	}
+}
+
+// Serve will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
+func (s *Server) Serve(l net.Listener) error {
+	return s.ServeMux(&mux.NetListener{Listener: l})
 }
 
 // Respond will Accept channels until the Session is closed and respond with the server handler in its own goroutine.

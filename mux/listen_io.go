@@ -1,10 +1,8 @@
-package transport
+package mux
 
 import (
 	"io"
 	"os"
-
-	"github.com/progrium/qtalk-go/mux"
 )
 
 // IOListener wraps a single ReadWriteCloser to use as a listener.
@@ -13,8 +11,8 @@ type IOListener struct {
 }
 
 // Accept will always return the wrapped ReadWriteCloser as a mux session.
-func (l *IOListener) Accept() (*mux.Session, error) {
-	return mux.New(l.ReadWriteCloser), nil
+func (l *IOListener) Accept() (*Session, error) {
+	return New(l.ReadWriteCloser), nil
 }
 
 type ioduplex struct {

@@ -1,4 +1,4 @@
-package transport
+package mux
 
 import (
 	"bytes"
@@ -7,20 +7,11 @@ import (
 	"io/ioutil"
 	"path"
 	"testing"
-
-	"github.com/progrium/qtalk-go/mux"
 )
 
-func fatal(err error, t *testing.T) {
-	t.Helper()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func testExchange(t *testing.T, sess *mux.Session) {
+func testExchange(t *testing.T, sess *Session) {
 	var err error
-	var ch *mux.Channel
+	var ch *Channel
 	t.Run("session accept", func(t *testing.T) {
 		ch, err = sess.Accept()
 		fatal(err, t)

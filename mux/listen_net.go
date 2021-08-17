@@ -1,38 +1,26 @@
-package transport
+package mux
 
 import (
-	"io"
 	"net"
-
-	"github.com/progrium/qtalk-go/mux"
 )
 
 // NetListener wraps a net.Listener to return connected mux sessions.
 type NetListener struct {
 	net.Listener
-	accepted chan *mux.Session
-	closer   chan bool
-	errs     chan error
 }
 
 // Accept waits for and returns the next connected session to the listener.
-func (l *NetListener) Accept() (*mux.Session, error) {
-	select {
-	case <-l.closer:
-		return nil, io.EOF
-	case err := <-l.errs:
+func (l *NetListener) Accept() (*Session, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
 		return nil, err
-	case sess := <-l.accepted:
-		return sess, nil
 	}
+	return New(conn), nil
 }
 
 // Close closes the listener.
 // Any blocked Accept operations will be unblocked and return errors.
 func (l *NetListener) Close() error {
-	if l.closer != nil {
-		l.closer <- true
-	}
 	return l.Listener.Close()
 }
 
@@ -41,25 +29,7 @@ func listenNet(proto, addr string) (*NetListener, error) {
 	if err != nil {
 		return nil, err
 	}
-	closer := make(chan bool, 1)
-	errs := make(chan error, 1)
-	accepted := make(chan *mux.Session)
-	go func(l net.Listener) {
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				errs <- err
-				return
-			}
-			accepted <- mux.New(conn)
-		}
-	}(l)
-	return &NetListener{
-		Listener: l,
-		errs:     errs,
-		accepted: accepted,
-		closer:   closer,
-	}, nil
+	return &NetListener{Listener: l}, nil
 }
 
 // ListenTCP creates a TCP listener at the given address.

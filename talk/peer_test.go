@@ -1,4 +1,4 @@
-package peer
+package talk
 
 import (
 	"context"
@@ -6,18 +6,18 @@ import (
 	"testing"
 
 	"github.com/progrium/qtalk-go/codec"
+	"github.com/progrium/qtalk-go/mux"
 	"github.com/progrium/qtalk-go/rpc"
-	"github.com/progrium/qtalk-go/transport"
 )
 
 func TestPeerBidirectional(t *testing.T) {
 	ar, bw := io.Pipe()
 	br, aw := io.Pipe()
-	sessA, _ := transport.DialIO(aw, ar)
-	sessB, _ := transport.DialIO(bw, br)
+	sessA, _ := mux.DialIO(aw, ar)
+	sessB, _ := mux.DialIO(bw, br)
 
-	peerA := New(sessA, codec.JSONCodec{})
-	peerB := New(sessB, codec.JSONCodec{})
+	peerA := NewPeer(sessA, codec.JSONCodec{})
+	peerB := NewPeer(sessB, codec.JSONCodec{})
 	defer peerA.Close()
 	defer peerB.Close()
 
