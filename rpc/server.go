@@ -18,7 +18,7 @@ type Server struct {
 	once sync.Once
 }
 
-// ServeMux will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
+// ServeMux will Accept sessions until the Listener is closed, and will Respond to accepted sessions in their own goroutine.
 func (s *Server) ServeMux(l mux.Listener) error {
 	for {
 		sess, err := l.Accept()
@@ -29,9 +29,9 @@ func (s *Server) ServeMux(l mux.Listener) error {
 	}
 }
 
-// Serve will Accept sessions until the Listener is closed and Respond to accepted sessions in their own goroutine.
+// Serve will Accept sessions until the Listener is closed, and will Respond to accepted sessions in their own goroutine.
 func (s *Server) Serve(l net.Listener) error {
-	return s.ServeMux(&mux.NetListener{Listener: l})
+	return s.ServeMux(mux.ListenerFrom(l))
 }
 
 // Respond will Accept channels until the Session is closed and respond with the server handler in its own goroutine.
@@ -52,7 +52,7 @@ func (s *Server) Respond(sess *mux.Session) {
 }
 
 func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
-	framer := &codec.FrameCodec{Codec: s.Codec}
+	framer := &FrameCodec{Codec: s.Codec}
 	dec := framer.Decoder(ch)
 
 	var call Call

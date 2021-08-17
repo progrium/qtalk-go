@@ -75,7 +75,7 @@ func TestHandlerFromFunc(t *testing.T) {
 
 	t.Run("with call", func(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int, call *rpc.Call) int {
-			if call.Selector != "sum" {
+			if call.Selector != "/sum" {
 				t.Fatalf("unexpected selector: %v", call.Selector)
 			}
 			return a + b

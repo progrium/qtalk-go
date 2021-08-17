@@ -10,8 +10,8 @@ type testData struct {
 	Arr []int
 }
 
-func TestJSONFrameCodec(t *testing.T) {
-	c := &FrameCodec{JSONCodec{}}
+func TestJSONCodec(t *testing.T) {
+	c := &JSONCodec{}
 	var buf bytes.Buffer
 
 	if err := c.Encoder(&buf).Encode(testData{

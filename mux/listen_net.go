@@ -4,13 +4,13 @@ import (
 	"net"
 )
 
-// NetListener wraps a net.Listener to return connected mux sessions.
-type NetListener struct {
+// netListener wraps a net.Listener to return connected mux sessions.
+type netListener struct {
 	net.Listener
 }
 
 // Accept waits for and returns the next connected session to the listener.
-func (l *NetListener) Accept() (*Session, error) {
+func (l *netListener) Accept() (*Session, error) {
 	conn, err := l.Listener.Accept()
 	if err != nil {
 		return nil, err
@@ -20,24 +20,32 @@ func (l *NetListener) Accept() (*Session, error) {
 
 // Close closes the listener.
 // Any blocked Accept operations will be unblocked and return errors.
-func (l *NetListener) Close() error {
+func (l *netListener) Close() error {
 	return l.Listener.Close()
 }
 
-func listenNet(proto, addr string) (*NetListener, error) {
-	l, err := net.Listen(proto, addr)
-	if err != nil {
-		return nil, err
-	}
-	return &NetListener{Listener: l}, nil
+func (l *netListener) Addr() net.Addr {
+	return l.Listener.Addr()
+}
+
+func ListenerFrom(l net.Listener) Listener {
+	return &netListener{Listener: l}
 }
 
 // ListenTCP creates a TCP listener at the given address.
-func ListenTCP(addr string) (*NetListener, error) {
-	return listenNet("tcp", addr)
+func ListenTCP(addr string) (Listener, error) {
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	return ListenerFrom(l), nil
 }
 
 // ListenTCP creates a Unix domain socket listener at the given path.
-func ListenUnix(path string) (*NetListener, error) {
-	return listenNet("unix", path)
+func ListenUnix(path string) (Listener, error) {
+	l, err := net.Listen("unix", path)
+	if err != nil {
+		return nil, err
+	}
+	return ListenerFrom(l), nil
 }

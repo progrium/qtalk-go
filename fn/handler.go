@@ -36,6 +36,11 @@ func HandlerFrom(v interface{}) rpc.Handler {
 	}
 }
 
+// Args is the expected argument value for calls made to HandlerFrom handlers.
+// Since it is just a slice of empty interface values, you can alternatively use
+// more specific slice types ([]int{}, etc) if all arguments are of the same type.
+type Args []interface{}
+
 func fromMethods(rcvr interface{}) rpc.Handler {
 	t := reflect.TypeOf(rcvr)
 	mux := rpc.NewRespondMux()

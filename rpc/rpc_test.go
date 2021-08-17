@@ -81,7 +81,7 @@ func TestRespondMux(t *testing.T) {
 			if !ok {
 				t.Fatal("unexpected error:", err)
 			}
-			if rErr.Error() != "remote: not found: baz" {
+			if rErr.Error() != "remote: not found: /baz" {
 				t.Fatal("unexpected error:", rErr)
 			}
 		}

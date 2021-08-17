@@ -46,7 +46,7 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 		return nil, err
 	}
 
-	framer := &codec.FrameCodec{Codec: c.codec}
+	framer := &FrameCodec{Codec: c.codec}
 	enc := framer.Encoder(ch)
 	dec := framer.Decoder(ch)
 

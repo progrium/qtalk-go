@@ -1,22 +1,24 @@
-package codec
+package rpc
 
 import (
 	"bytes"
 	"encoding/binary"
 	"io"
+
+	"github.com/progrium/qtalk-go/codec"
 )
 
 // FrameCodec is a special codec used to actually read/write other
 // codecs to a transport using a length prefix.
 type FrameCodec struct {
-	Codec
+	codec.Codec
 }
 
 // Encoder returns a frame encoder that first encodes a value
 // to a buffer using the embedded codec, prepends the encoded value
 // byte length as a four byte big endian uint32, then writes to
 // the given Writer.
-func (c *FrameCodec) Encoder(w io.Writer) Encoder {
+func (c *FrameCodec) Encoder(w io.Writer) codec.Encoder {
 	return &frameEncoder{
 		w: w,
 		c: c.Codec,
@@ -25,7 +27,7 @@ func (c *FrameCodec) Encoder(w io.Writer) Encoder {
 
 type frameEncoder struct {
 	w io.Writer
-	c Codec
+	c codec.Codec
 }
 
 func (e *frameEncoder) Encode(v interface{}) error {
@@ -48,7 +50,7 @@ func (e *frameEncoder) Encode(v interface{}) error {
 // Decoder returns a frame decoder that first reads a four byte frame
 // length value used to read the rest of the frame, then uses the
 // embedded codec to decode those bytes into a value.
-func (c *FrameCodec) Decoder(r io.Reader) Decoder {
+func (c *FrameCodec) Decoder(r io.Reader) codec.Decoder {
 	return &frameDecoder{
 		r: r,
 		c: c.Codec,
@@ -57,7 +59,7 @@ func (c *FrameCodec) Decoder(r io.Reader) Decoder {
 
 type frameDecoder struct {
 	r io.Reader
-	c Codec
+	c codec.Codec
 }
 
 func (d *frameDecoder) Decode(v interface{}) error {
