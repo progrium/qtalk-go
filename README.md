@@ -1,5 +1,6 @@
 # qtalk-go
 [![GoDoc](https://godoc.org/github.com/progrium/qtalk-go?status.svg)](https://godoc.org/github.com/progrium/qtalk-go)
+<a href="https://github.com/progrium/qtalk-go/actions?workflow=test"><img alt="Test workflow" src="https://img.shields.io/github/workflow/status/progrium/qtalk-go/Test?label=test&logo=github&style=flat-square"></a>
 [![Go Report Card](https://goreportcard.com/badge/github.com/progrium/qtalk-go)](https://goreportcard.com/report/github.com/progrium/qtalk-go)
 <a href="https://twitter.com/progriumHQ" title="@progriumHQ on Twitter"><img src="https://img.shields.io/badge/twitter-@progriumHQ-55acee.svg" alt="@progriumHQ on Twitter"></a>
 <a href="https://github.com/progrium/qtalk-go/discussions" title="Project Forum"><img src="https://img.shields.io/badge/community-forum-ff69b4.svg" alt="Project Forum"></a>
