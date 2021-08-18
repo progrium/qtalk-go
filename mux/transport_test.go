@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -64,7 +65,10 @@ func startListener(t *testing.T, l Listener) {
 			// Registering as a test cleanup function also avoids a race condition
 			// with the test exiting before closing the session.
 			if err := sess.Wait(); err != io.EOF {
-				t.Errorf("Wait returned unexpected error: %v", err)
+				// windows test environments make wait return funky errors
+				if !strings.Contains(err.Error(), "wsarecv") {
+					t.Errorf("Wait returned unexpected error: %v", err)
+				}
 			}
 			err = sess.Close()
 			fatal(err, t)
