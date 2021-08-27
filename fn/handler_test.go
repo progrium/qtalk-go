@@ -140,6 +140,14 @@ func (m *mockMethods) Foo() string {
 
 func (m *mockMethods) Bar() {}
 
+func (m *mockMethods) Struct(input *mockStruct) *mockStruct {
+	return &mockStruct{strings.ToUpper(input.S)}
+}
+
+type mockStruct struct {
+	S string
+}
+
 func TestHandlerFromMethods(t *testing.T) {
 	handler := HandlerFrom(&mockMethods{})
 	mux, ok := handler.(*rpc.RespondMux)
@@ -154,15 +162,28 @@ func TestHandlerFromMethods(t *testing.T) {
 	if h == nil {
 		t.Fatal("expected Bar handler")
 	}
+	h, _ = mux.Match("Struct")
+	if h == nil {
+		t.Fatal("expected Struct handler")
+	}
 
 	client, _ := rpctest.NewPair(mux, codec.JSONCodec{})
 	defer client.Close()
 
 	var ret string
-	if _, err := client.Call(context.Background(), "Foo", nil, &ret); err != nil {
-		t.Fatal(err)
+	ctx := context.Background()
+	if _, err := client.Call(ctx, "Foo", nil, &ret); err != nil {
+		t.Error(err)
 	}
 	if ret != "Foo" {
-		t.Fatalf("unexpected ret: %v", ret)
+		t.Errorf("unexpected ret: %v", ret)
+	}
+
+	var reply mockStruct
+	if _, err := client.Call(ctx, "Struct", &mockStruct{S: "a"}, &reply); err != nil {
+		t.Error(err)
+	}
+	if reply.S != "A" {
+		t.Errorf("unexpected ret: %+v", reply)
 	}
 }
