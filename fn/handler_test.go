@@ -178,9 +178,16 @@ func TestHandlerFromMethods(t *testing.T) {
 	}
 
 	var reply mockStruct
-	if _, err := client.Call(ctx, "Struct", &mockStruct{S: "a"}, &reply); err != nil {
-		t.Error(err)
+	_, err := client.Call(ctx, "Struct", &mockStruct{S: "a"}, &reply)
+	if !strings.HasSuffix(err.Error(), "fn: wrap with fn.Args{}") {
+		t.Errorf("unexpected err: %+v", err)
 	}
+
+	_, err = client.Call(ctx, "Struct", Args{&mockStruct{S: "a"}}, &reply)
+	if !strings.HasSuffix(err.Error(), "fn: wrap with fn.Args{}") {
+		t.Errorf("unexpected err: %+v", err)
+	}
+
 	if reply.S != "A" {
 		t.Errorf("unexpected ret: %+v", reply)
 	}

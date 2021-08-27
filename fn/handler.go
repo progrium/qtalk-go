@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/progrium/qtalk-go/rpc"
 )
@@ -63,6 +64,10 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 		params := reflect.New(reflect.TypeOf([]interface{}{}))
 
 		if err := c.Receive(params.Interface()); err != nil {
+			if strings.HasPrefix(err.Error(), "json: cannot unmarshal object into Go value of type") {
+				r.Return(errors.New("fn: wrap with fn.Args{}"))
+				return
+			}
 			r.Return(fmt.Errorf("fn: args: %s", err.Error()))
 			return
 		}
