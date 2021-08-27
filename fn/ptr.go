@@ -162,7 +162,7 @@ func keys(v reflect.Value) []string {
 			}
 			keys = append(keys, k)
 		}
-		sort.Sort(sort.StringSlice(keys))
+		sort.Strings(keys)
 		return keys
 	case reflect.Struct:
 		t := v.Type()

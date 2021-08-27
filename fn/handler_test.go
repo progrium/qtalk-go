@@ -118,9 +118,7 @@ func TestHandlerFromFunc(t *testing.T) {
 	})
 
 	t.Run("no return", func(t *testing.T) {
-		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) {
-			return
-		}), codec.JSONCodec{})
+		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) {}), codec.JSONCodec{})
 		defer client.Close()
 
 		var sum int
