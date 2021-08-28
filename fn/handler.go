@@ -88,6 +88,8 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 			switch fntyp.In(idx).Kind() {
 			case reflect.Int:
 				fnParams = append(fnParams, reflect.ValueOf(int(param.(float64))))
+			case reflect.Ptr, reflect.Struct:
+				r.Return(errors.New("fn: cannot cast map[string]interface{} to struct"))
 			default:
 				fnParams = append(fnParams, reflect.ValueOf(param))
 			}

@@ -138,8 +138,12 @@ func (m *mockMethods) Foo() string {
 
 func (m *mockMethods) Bar() {}
 
-func (m *mockMethods) Struct(input *mockStruct) *mockStruct {
+func (m *mockMethods) Pointer(input *mockStruct) *mockStruct {
 	return &mockStruct{strings.ToUpper(input.S)}
+}
+
+func (m *mockMethods) Struct(input mockStruct) mockStruct {
+	return mockStruct{strings.ToUpper(input.S)}
 }
 
 type mockStruct struct {
@@ -164,6 +168,10 @@ func TestHandlerFromMethods(t *testing.T) {
 	if h == nil {
 		t.Fatal("expected Struct handler")
 	}
+	h, _ = mux.Match("Pointer")
+	if h == nil {
+		t.Fatal("expected Struct handler")
+	}
 
 	client, _ := rpctest.NewPair(mux, codec.JSONCodec{})
 	defer client.Close()
@@ -178,17 +186,25 @@ func TestHandlerFromMethods(t *testing.T) {
 	}
 
 	var reply mockStruct
-	_, err := client.Call(ctx, "Struct", &mockStruct{S: "a"}, &reply)
+	_, err := client.Call(ctx, "Pointer", &mockStruct{S: "a"}, &reply)
 	if !strings.HasSuffix(err.Error(), "fn: wrap with fn.Args{}") {
 		t.Errorf("unexpected err: %+v", err)
 	}
-
-	_, err = client.Call(ctx, "Struct", Args{&mockStruct{S: "a"}}, &reply)
+	_, err = client.Call(ctx, "Struct", mockStruct{S: "a"}, &reply)
 	if !strings.HasSuffix(err.Error(), "fn: wrap with fn.Args{}") {
 		t.Errorf("unexpected err: %+v", err)
 	}
+	_, err = client.Call(ctx, "Pointer", Args{&mockStruct{S: "a"}}, &reply)
+	if !strings.HasSuffix(err.Error(), "fn: cannot cast map[string]interface{} to struct") {
+		t.Errorf("unexpected err: %+v", err)
+	}
 
-	if reply.S != "A" {
+	_, err = client.Call(ctx, "Struct", Args{mockStruct{S: "a"}}, &reply)
+	if !strings.HasSuffix(err.Error(), "fn: cannot cast map[string]interface{} to struct") {
+		t.Errorf("unexpected err: %+v", err)
+	}
+
+	if reply.S == "A" {
 		t.Errorf("unexpected ret: %+v", reply)
 	}
 }
