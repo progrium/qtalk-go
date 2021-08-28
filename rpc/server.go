@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"sync"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/mux"
@@ -14,8 +13,6 @@ import (
 type Server struct {
 	Handler Handler
 	Codec   codec.Codec
-
-	once sync.Once
 }
 
 // ServeMux will Accept sessions until the Listener is closed, and will Respond to accepted sessions in their own goroutine.
@@ -39,6 +36,12 @@ func (s *Server) Serve(l net.Listener) error {
 // returned. If the handler does not call Continue, the channel will be closed.
 func (s *Server) Respond(sess *mux.Session) {
 	defer sess.Close()
+
+	hn := s.Handler
+	if hn == nil {
+		hn = NewRespondMux()
+	}
+
 	for {
 		ch, err := sess.Accept()
 		if err != nil {
@@ -47,11 +50,11 @@ func (s *Server) Respond(sess *mux.Session) {
 			}
 			panic(err)
 		}
-		go s.respond(sess, ch)
+		go s.respond(hn, sess, ch)
 	}
 }
 
-func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
+func (s *Server) respond(hn Handler, sess *mux.Session, ch *mux.Channel) {
 	framer := &FrameCodec{Codec: s.Codec}
 	dec := framer.Decoder(ch)
 
@@ -76,13 +79,7 @@ func (s *Server) respond(sess *mux.Session, ch *mux.Channel) {
 		header: header,
 	}
 
-	s.once.Do(func() {
-		if s.Handler == nil {
-			s.Handler = NewRespondMux()
-		}
-	})
-
-	s.Handler.RespondRPC(resp, &call)
+	hn.RespondRPC(resp, &call)
 	if !resp.responded {
 		resp.Return(nil)
 	}
