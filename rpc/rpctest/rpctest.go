@@ -21,7 +21,7 @@ func NewPair(handler rpc.Handler, codec codec.Codec) (*rpc.Client, *rpc.Server) 
 		Codec:   codec,
 		Handler: handler,
 	}
-	go srv.Respond(sessA)
+	go srv.Respond(sessA, nil)
 
 	return rpc.NewClient(sessB, codec), srv
 }

@@ -29,12 +29,13 @@ type CallHeader struct {
 }
 
 // Call is used on the responding side of a call and is passed to the handler.
-// Call is also a Caller so it can be used to make calls back to the calling side.
+// Call has a Caller so it can be used to make calls back to the calling side.
 type Call struct {
 	CallHeader
 
 	Caller  Caller
 	Decoder codec.Decoder
+	Context context.Context
 }
 
 // Receive will decode an incoming value from the underlying channel. It can be

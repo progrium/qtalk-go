@@ -33,5 +33,5 @@ func (p *Peer) Close() error {
 // a server, using any registered handlers.
 func (p *Peer) Respond() {
 	srv := &rpc.Server{Handler: p.RespondMux, Codec: p.Codec}
-	srv.Respond(p.Session)
+	srv.Respond(p.Session, nil)
 }

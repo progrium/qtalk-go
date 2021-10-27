@@ -28,7 +28,7 @@ func newTestPair(handler Handler) (*Client, *Server) {
 		Codec:   codec.JSONCodec{},
 		Handler: handler,
 	}
-	go srv.Respond(sessA)
+	go srv.Respond(sessA, nil)
 
 	return NewClient(sessB, codec.JSONCodec{}), srv
 }
