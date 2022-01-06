@@ -14,6 +14,7 @@ import (
 type Server struct {
 	Handler Handler
 	Codec   codec.Codec
+	Context context.Context
 }
 
 // ServeMux will Accept sessions until the Listener is closed, and will Respond to accepted sessions in their own goroutine.
@@ -23,7 +24,7 @@ func (s *Server) ServeMux(l mux.Listener) error {
 		if err != nil {
 			return err
 		}
-		go s.Respond(sess, nil)
+		go s.Respond(sess, s.Context)
 	}
 }
 
@@ -43,6 +44,14 @@ func (s *Server) Respond(sess *mux.Session, ctx context.Context) {
 	hn := s.Handler
 	if hn == nil {
 		hn = NewRespondMux()
+	}
+
+	if ctx == nil {
+		if s.Context == nil {
+			ctx = context.Background()
+		} else {
+			ctx = s.Context
+		}
 	}
 
 	for {
@@ -74,11 +83,7 @@ func (s *Server) respond(hn Handler, sess *mux.Session, ch *mux.Channel, ctx con
 		Session: sess,
 		codec:   s.Codec,
 	}
-	if ctx == nil {
-		call.Context = context.Background()
-	} else {
-		call.Context = ctx
-	}
+	call.Context = ctx
 
 	header := &ResponseHeader{}
 	resp := &responder{
