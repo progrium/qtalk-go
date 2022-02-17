@@ -20,6 +20,15 @@ func TestHandlerFromBadData(t *testing.T) {
 	HandlerFrom(2)
 }
 
+type subfake struct {
+	A string
+}
+
+type fake struct {
+	A subfake
+	B int
+}
+
 func TestHandlerFromFunc(t *testing.T) {
 	t.Run("int sum", func(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) int {
@@ -33,6 +42,22 @@ func TestHandlerFromFunc(t *testing.T) {
 		}
 		if sum != 5 {
 			t.Fatalf("unexpected sum: %v", sum)
+		}
+	})
+
+	t.Run("struct arguments", func(t *testing.T) {
+		client, _ := rpctest.NewPair(HandlerFrom(func(a fake, b subfake) {
+			if a.A.A != "Hello" {
+				t.Fatalf("unexpected field value in struct: %v", a)
+			}
+			if b.A != "world" {
+				t.Fatalf("unexpected field value in struct: %v", b)
+			}
+		}), codec.JSONCodec{})
+		defer client.Close()
+
+		if _, err := client.Call(context.Background(), "", Args{fake{A: subfake{A: "Hello"}}, subfake{A: "world"}}, nil); err != nil {
+			t.Fatal(err)
 		}
 	})
 

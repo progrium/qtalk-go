@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/progrium/qtalk-go/rpc"
 )
 
@@ -73,21 +74,33 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 		}
 
 		var fnParams []reflect.Value
+
 		if rcvr.IsValid() {
 			fnParams = append(fnParams, rcvr)
 		}
+
 		for idx, param := range params.Elem().Interface().([]interface{}) {
 			if rcvr.IsValid() {
 				idx++
 			}
 			switch fntyp.In(idx).Kind() {
+			case reflect.Struct:
+				// convert to struct type using mapstructure
+				arg := reflect.New(fntyp.In(idx))
+				if err := mapstructure.Decode(param, arg.Interface()); err != nil {
+					r.Return(fmt.Errorf("fn: mapstructure: %s", err.Error()))
+					return
+				}
+				fnParams = append(fnParams, arg.Elem())
 			case reflect.Int:
+				// if int is expected cast the float64 (assumes json-like encoding)
 				fnParams = append(fnParams, reflect.ValueOf(int(param.(float64))))
 			default:
 				fnParams = append(fnParams, reflect.ValueOf(param))
 			}
 		}
 
+		// if the last argument in fn is an rpc.Call, add our call to fnParams
 		if fn.Type().NumIn() > 0 {
 			callRef := reflect.TypeOf(&rpc.Call{})
 			if fn.Type().In(fn.Type().NumIn()-1) == callRef {
@@ -100,7 +113,6 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 			return
 		}
 
-		// TODO type conversions for simple named types (type Foo string)
 		fnReturn := fn.Call(fnParams)
 
 		r.Return(parseReturn(fnReturn))
