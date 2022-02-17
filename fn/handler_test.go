@@ -29,6 +29,8 @@ type fake struct {
 	B int
 }
 
+type id int
+
 func TestHandlerFromFunc(t *testing.T) {
 	t.Run("int sum", func(t *testing.T) {
 		client, _ := rpctest.NewPair(HandlerFrom(func(a, b int) int {
@@ -42,6 +44,21 @@ func TestHandlerFromFunc(t *testing.T) {
 		}
 		if sum != 5 {
 			t.Fatalf("unexpected sum: %v", sum)
+		}
+	})
+
+	t.Run("defined type arg and return", func(t *testing.T) {
+		client, _ := rpctest.NewPair(HandlerFrom(func(a id) id {
+			return a
+		}), codec.JSONCodec{})
+		defer client.Close()
+
+		var ret id
+		if _, err := client.Call(context.Background(), "", Args{id(64)}, &ret); err != nil {
+			t.Fatal(err)
+		}
+		if ret != 64 {
+			t.Fatalf("unexpected sum: %v", ret)
 		}
 	})
 

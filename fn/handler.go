@@ -85,18 +85,18 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 			}
 			switch fntyp.In(idx).Kind() {
 			case reflect.Struct:
-				// convert to struct type using mapstructure
+				// decode to struct type using mapstructure
 				arg := reflect.New(fntyp.In(idx))
 				if err := mapstructure.Decode(param, arg.Interface()); err != nil {
 					r.Return(fmt.Errorf("fn: mapstructure: %s", err.Error()))
 					return
 				}
-				fnParams = append(fnParams, arg.Elem())
+				fnParams = append(fnParams, ensureType(arg.Elem(), fntyp.In(idx)))
 			case reflect.Int:
 				// if int is expected cast the float64 (assumes json-like encoding)
-				fnParams = append(fnParams, reflect.ValueOf(int(param.(float64))))
+				fnParams = append(fnParams, ensureType(reflect.ValueOf(int(param.(float64))), fntyp.In(idx)))
 			default:
-				fnParams = append(fnParams, reflect.ValueOf(param))
+				fnParams = append(fnParams, ensureType(reflect.ValueOf(param), fntyp.In(idx)))
 			}
 		}
 
@@ -143,4 +143,32 @@ func parseReturn(ret []reflect.Value) interface{} {
 	}
 
 	return retVal.Interface()
+}
+
+// ensureType ensures a value is converted to the expected
+// defined type from a convertable underlying type
+func ensureType(v reflect.Value, t reflect.Type) reflect.Value {
+	nv := v
+	if v.Type().Kind() == reflect.Slice && v.Type().Elem() != t {
+		switch t.Kind() {
+		case reflect.Array:
+			nv = reflect.Indirect(reflect.New(t))
+			for i := 0; i < v.Len(); i++ {
+				vv := reflect.ValueOf(v.Index(i).Interface())
+				nv.Index(i).Set(vv.Convert(nv.Type().Elem()))
+			}
+		case reflect.Slice:
+			nv = reflect.MakeSlice(t, 0, 0)
+			for i := 0; i < v.Len(); i++ {
+				vv := reflect.ValueOf(v.Index(i).Interface())
+				nv = reflect.Append(nv, vv.Convert(nv.Type().Elem()))
+			}
+		default:
+			panic("unable to convert slice to non-array, non-slice type")
+		}
+	}
+	if v.Type() != t {
+		nv = nv.Convert(t)
+	}
+	return nv
 }
