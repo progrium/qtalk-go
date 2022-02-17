@@ -58,7 +58,7 @@ func TestHandlerFromFunc(t *testing.T) {
 			t.Fatal(err)
 		}
 		if ret != 64 {
-			t.Fatalf("unexpected sum: %v", ret)
+			t.Fatalf("unexpected return value: %v", ret)
 		}
 	})
 
