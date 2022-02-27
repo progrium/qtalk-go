@@ -1,4 +1,4 @@
-package fn
+package exp
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/progrium/qtalk-go/fn"
 	"github.com/progrium/qtalk-go/rpc"
 	"github.com/rs/xid"
 )
@@ -66,7 +67,7 @@ func RegisterPtrs(m *rpc.RespondMux, v interface{}) {
 	ptrs := PtrsFrom(v)
 	for _, ptr := range ptrs {
 		if h, _ := m.Match(ptr.Ptr); h == nil {
-			m.Handle(ptr.Ptr, HandlerFrom(ptr.fn))
+			m.Handle(ptr.Ptr, fn.HandlerFrom(ptr.fn))
 		}
 	}
 }

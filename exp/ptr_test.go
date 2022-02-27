@@ -1,11 +1,11 @@
-package fn_test
+package exp_test
 
 import (
 	"context"
 	"encoding/json"
 	"testing"
 
-	"github.com/progrium/qtalk-go/fn"
+	fn "github.com/progrium/qtalk-go/exp"
 	"github.com/progrium/qtalk-go/rpc"
 )
 
