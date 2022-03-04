@@ -92,6 +92,22 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 					return
 				}
 				fnParams = append(fnParams, ensureType(arg.Elem(), fntyp.In(idx)))
+			case reflect.Slice:
+				rv := reflect.ValueOf(param)
+				// decode slice of structs to struct type using mapstructure
+				if fntyp.In(idx).Elem().Kind() == reflect.Struct {
+					nv := reflect.MakeSlice(fntyp.In(idx), rv.Len(), rv.Len())
+					for i := 0; i < rv.Len(); i++ {
+						ref := reflect.New(nv.Index(i).Type())
+						if err := mapstructure.Decode(rv.Index(i).Interface(), ref.Interface()); err != nil {
+							r.Return(fmt.Errorf("fn: mapstructure: %s", err.Error()))
+							return
+						}
+						nv.Index(i).Set(reflect.Indirect(ref))
+					}
+					rv = nv
+				}
+				fnParams = append(fnParams, rv)
 			case reflect.Int:
 				// if int is expected cast the float64 (assumes json-like encoding)
 				fnParams = append(fnParams, ensureType(reflect.ValueOf(int(param.(float64))), fntyp.In(idx)))
