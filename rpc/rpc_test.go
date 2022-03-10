@@ -87,6 +87,34 @@ func TestRespondMux(t *testing.T) {
 		}
 	})
 
+	t.Run("selector not found with fallback", func(t *testing.T) {
+		mux := NewRespondMux()
+		mux.Handle("foo", HandlerFunc(func(r Responder, c *Call) {
+			r.Return("foo")
+		}))
+		mux.FallbackHandler = HandlerFunc(func(r Responder, c *Call) {
+			r.Return(fmt.Errorf("fallback"))
+		})
+
+		client, _ := newTestPair(mux)
+		defer client.Close()
+
+		var out string
+		_, err := client.Call(ctx, "baz", nil, &out)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if err != nil {
+			rErr, ok := err.(RemoteError)
+			if !ok {
+				t.Fatal("unexpected error:", err)
+			}
+			if rErr.Error() != "remote: fallback" {
+				t.Fatal("unexpected error:", rErr)
+			}
+		}
+	})
+
 	t.Run("sub muxing", func(t *testing.T) {
 		mux := NewRespondMux()
 		submux := NewRespondMux()

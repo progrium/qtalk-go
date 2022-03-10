@@ -36,6 +36,7 @@ type Call struct {
 	Caller  Caller
 	Decoder codec.Decoder
 	Context context.Context
+	ch      *mux.Channel
 }
 
 // Receive will decode an incoming value from the underlying channel. It can be

@@ -79,6 +79,7 @@ func (s *Server) respond(hn Handler, sess *mux.Session, ch *mux.Channel, ctx con
 	} else {
 		call.Context = ctx
 	}
+	call.ch = ch
 
 	header := &ResponseHeader{}
 	resp := &responder{
