@@ -131,12 +131,23 @@ func TestRespondMux(t *testing.T) {
 				t.Fatal("unexpected error:", rErr)
 			}
 		}
+
+		_, err = client.Call(ctx, "foo", nil, &out)
+		if err != nil {
+			t.Fatal("unexpected error:", err)
+		}
+		if out != "foo" {
+			t.Fatal("unexpected return:", out)
+		}
 	})
 
 	t.Run("sub muxing", func(t *testing.T) {
 		mux := NewRespondMux()
 		submux := NewRespondMux()
 		mux.Handle("foo.bar", submux)
+		mux.Handle("", HandlerFunc(func(r Responder, c *Call) {
+			r.Return(fmt.Errorf("default"))
+		}))
 		submux.Handle("baz", HandlerFunc(func(r Responder, c *Call) {
 			r.Return("foobarbaz")
 		}))

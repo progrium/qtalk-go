@@ -58,6 +58,10 @@ type muxEntry struct {
 	pattern string
 }
 
+type matcher interface {
+	Match(selector string) (h Handler, pattern string)
+}
+
 // cleanSelector returns the canonical selector for s, normalizing . separators to /.
 func cleanSelector(s string) string {
 	if s == "" {
@@ -125,20 +129,10 @@ func (m *RespondMux) Match(selector string) (h Handler, pattern string) {
 	// that end in / sorted from longest to shortest.
 	for _, e := range m.es {
 		if strings.HasPrefix(selector, e.pattern) {
-			return e.h, e.pattern
-		}
-	}
-
-	// Check for any prefix match that has a handler
-	// that is also a matcher (ie is a submuxer)
-	for _, e := range m.m {
-		if strings.HasPrefix(selector, e.pattern) {
-			m, ok := e.h.(interface {
-				Match(selector string) (h Handler, pattern string)
-			})
-			if ok {
+			if m, ok := e.h.(matcher); ok {
 				return m.Match(strings.TrimPrefix(selector, e.pattern))
 			}
+			return e.h, e.pattern
 		}
 	}
 
@@ -152,6 +146,9 @@ func (m *RespondMux) Handle(pattern string, handler Handler) {
 	defer m.mu.Unlock()
 
 	pattern = cleanSelector(pattern)
+	if _, ok := handler.(matcher); ok && pattern[len(pattern)-1] != '/' {
+		pattern = pattern + "/"
+	}
 
 	if handler == nil {
 		panic("rpc: nil handler")
