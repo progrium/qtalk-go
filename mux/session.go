@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"sync"
 
 	"github.com/progrium/qtalk-go/mux/frame"
@@ -105,7 +106,9 @@ func (s *Session) Open(ctx context.Context) (*Channel, error) {
 		return nil, ctx.Err()
 	case m = <-ch.msg:
 		if m == nil {
-			return nil, fmt.Errorf("qmux: channel closed early during open")
+			// channel was closed before open got a response,
+			// typically meaning the session/conn was closed.
+			return nil, net.ErrClosed
 		}
 	}
 
