@@ -51,8 +51,6 @@ type RespondMux struct {
 	m  map[string]muxEntry
 	es []muxEntry // slice of entries sorted from longest to shortest.
 	mu sync.RWMutex
-
-	FallbackHandler Handler // FallbackHandler is used instead of NotFoundHandler() if not nil
 }
 
 type muxEntry struct {
@@ -93,11 +91,7 @@ func (m *RespondMux) Handler(c *Call) (h Handler, pattern string) {
 
 	h, pattern = m.Match(c.Selector)
 	if h == nil {
-		if m.FallbackHandler == nil {
-			h, pattern = NotFoundHandler(), ""
-			return
-		}
-		h, pattern = m.FallbackHandler, ""
+		h, pattern = NotFoundHandler(), ""
 	}
 	return
 }
@@ -157,9 +151,6 @@ func (m *RespondMux) Handle(pattern string, handler Handler) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if pattern == "" {
-		panic("rpc: invalid pattern")
-	}
 	pattern = cleanSelector(pattern)
 
 	if handler == nil {

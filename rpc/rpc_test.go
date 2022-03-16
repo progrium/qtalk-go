@@ -33,6 +33,24 @@ func newTestPair(handler Handler) (*Client, *Server) {
 	return NewClient(sessB, codec.JSONCodec{}), srv
 }
 
+func TestServerNoCodec(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("did not panic from unset codec")
+		}
+	}()
+
+	ar, _ := io.Pipe()
+	_, aw := io.Pipe()
+	sessA, _ := mux.DialIO(aw, ar)
+
+	srv := &Server{
+		Handler: NotFoundHandler(),
+	}
+	go sessA.Close()
+	srv.Respond(sessA, nil)
+}
+
 func TestRespondMux(t *testing.T) {
 	ctx := context.Background()
 
@@ -87,14 +105,14 @@ func TestRespondMux(t *testing.T) {
 		}
 	})
 
-	t.Run("selector not found with fallback", func(t *testing.T) {
+	t.Run("default handler mux", func(t *testing.T) {
 		mux := NewRespondMux()
 		mux.Handle("foo", HandlerFunc(func(r Responder, c *Call) {
 			r.Return("foo")
 		}))
-		mux.FallbackHandler = HandlerFunc(func(r Responder, c *Call) {
-			r.Return(fmt.Errorf("fallback"))
-		})
+		mux.Handle("", HandlerFunc(func(r Responder, c *Call) {
+			r.Return(fmt.Errorf("default"))
+		}))
 
 		client, _ := newTestPair(mux)
 		defer client.Close()
@@ -109,7 +127,7 @@ func TestRespondMux(t *testing.T) {
 			if !ok {
 				t.Fatal("unexpected error:", err)
 			}
-			if rErr.Error() != "remote: fallback" {
+			if rErr.Error() != "remote: default" {
 				t.Fatal("unexpected error:", rErr)
 			}
 		}
@@ -196,16 +214,6 @@ func TestRespondMux(t *testing.T) {
 		}()
 		mux := NewRespondMux()
 		mux.Handle("foo.bar", nil)
-	})
-
-	t.Run("bad pattern: empty", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Errorf("did not panic from empty pattern")
-			}
-		}()
-		mux := NewRespondMux()
-		mux.Handle("", NotFoundHandler())
 	})
 
 	t.Run("bad handle: exists", func(t *testing.T) {

@@ -19,7 +19,7 @@ func TestProxyHandlerUnaryRPC(t *testing.T) {
 	defer backend.Close()
 
 	frontmux := NewRespondMux()
-	frontmux.FallbackHandler = ProxyHandler(backend)
+	frontmux.Handle("", ProxyHandler(backend))
 
 	client, _ := newTestPair(frontmux)
 	defer client.Close()
@@ -48,7 +48,7 @@ func TestProxyHandlerBytestream(t *testing.T) {
 	defer backend.Close()
 
 	frontmux := NewRespondMux()
-	frontmux.FallbackHandler = ProxyHandler(backend)
+	frontmux.Handle("", ProxyHandler(backend))
 
 	client, _ := newTestPair(frontmux)
 	defer client.Close()

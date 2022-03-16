@@ -34,11 +34,15 @@ func (s *Server) Serve(l net.Listener) error {
 
 // Respond will Accept channels until the Session is closed and respond with the server handler in its own goroutine.
 // If Handler was not set, an empty RespondMux is used. If the handler does not initiate a response, a nil value is
-// returned. If the handler does not call Continue, the channel will be closed.
+// returned. If the handler does not call Continue, the channel will be closed. Respond will panic if Codec is nil.
 //
 // If the context is not nil, it will be added to Calls. Otherwise the Call Context will be set to a context.Background().
 func (s *Server) Respond(sess *mux.Session, ctx context.Context) {
 	defer sess.Close()
+
+	if s.Codec == nil {
+		panic("rpc.Respond: nil codec")
+	}
 
 	hn := s.Handler
 	if hn == nil {
