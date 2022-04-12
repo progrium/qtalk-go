@@ -61,6 +61,12 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 	fntyp := reflect.TypeOf(fn_)
 
 	return rpc.HandlerFunc(func(r rpc.Responder, c *rpc.Call) {
+		defer func() {
+			if p := recover(); p != nil {
+				r.Return(fmt.Errorf("panic: %s", p))
+			}
+		}()
+
 		params := reflect.New(reflect.TypeOf([]interface{}{}))
 
 		if err := c.Receive(params.Interface()); err != nil {
