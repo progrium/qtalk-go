@@ -15,9 +15,8 @@ const (
 	maxPacketLength = 1 << 31
 
 	// channelMaxPacket contains the maximum number of bytes that will be
-	// sent in a single packet. As per RFC 4253, section 6.1, 32k is also
-	// the minimum.
-	channelMaxPacket = 1 << 15
+	// sent in a single packet.
+	channelMaxPacket = 1 << 24 // ~16MB, arbitrary
 	// We follow OpenSSH here.
 	channelWindowSize = 64 * channelMaxPacket
 
