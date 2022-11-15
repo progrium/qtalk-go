@@ -16,6 +16,13 @@ import (
 // registering each method as a handler using its method name. From there, methods
 // are treated just like functions.
 //
+// The registered methods can be limited by providing an interface type parameter:
+//
+//	h := HandlerFrom[interface{
+//		OnlyTheseMethods()
+//		WillBeRegistered()
+//	}](myHandlerImplementation)
+//
 // Function handlers expect an array to use as arguments. If the incoming argument
 // array is too large or too small, the handler returns an error. Functions can opt-in
 // to take a final Call pointer argument, allowing the handler to give it the Call value
