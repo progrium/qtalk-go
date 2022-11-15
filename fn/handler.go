@@ -23,6 +23,9 @@ import (
 //		WillBeRegistered()
 //	}](myHandlerImplementation)
 //
+// If a struct method matches the HandlerFunc signature, the method will be called
+// directly with the handler arguments. Otherwise it will be wrapped as described below.
+//
 // Function handlers expect an array to use as arguments. If the incoming argument
 // array is too large or too small, the handler returns an error. Functions can opt-in
 // to take a final Call pointer argument, allowing the handler to give it the Call value
@@ -52,6 +55,8 @@ func HandlerFrom[T any](v T) rpc.Handler {
 // more specific slice types ([]int{}, etc) if all arguments are of the same type.
 type Args []any
 
+var handlerFuncType = reflect.TypeOf((*rpc.HandlerFunc)(nil)).Elem()
+
 func fromMethods(rcvr interface{}, t reflect.Type) rpc.Handler {
 	// If `t` is an interface, `Convert()` wraps the value with that interface
 	// type. This makes sure that the Method(i) indexes match for getting both the
@@ -59,7 +64,14 @@ func fromMethods(rcvr interface{}, t reflect.Type) rpc.Handler {
 	rcvrval := reflect.ValueOf(rcvr).Convert(t)
 	mux := rpc.NewRespondMux()
 	for i := 0; i < t.NumMethod(); i++ {
-		mux.Handle(t.Method(i).Name, fromFunc(rcvrval.Method(i)))
+		m := rcvrval.Method(i)
+		var h rpc.Handler
+		if m.CanConvert(handlerFuncType) {
+			h = m.Convert(handlerFuncType).Interface().(rpc.HandlerFunc)
+		} else {
+			h = fromFunc(m)
+		}
+		mux.Handle(t.Method(i).Name, h)
 	}
 	h, ok := rcvr.(rpc.Handler)
 	if ok {

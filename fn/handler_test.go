@@ -3,6 +3,7 @@ package fn
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -266,6 +267,32 @@ func TestHandlerFromMethodsInterfaceDifferentMethod(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ret != "" {
+		t.Fatalf("unexpected ret: %v", ret)
+	}
+}
+
+type handlerFuncMethod struct{}
+
+func (*handlerFuncMethod) Bar(r rpc.Responder, c *rpc.Call) {
+	var args []any
+	if err := c.Receive(&args); err != nil {
+		r.Return(fmt.Errorf("fn: args: %s", err.Error()))
+		return
+	}
+
+	r.Return("returned from Responder")
+}
+
+func TestMethodHandlerFunc(t *testing.T) {
+	handler := HandlerFrom(&handlerFuncMethod{})
+	client, _ := rpctest.NewPair(handler, codec.JSONCodec{})
+	defer client.Close()
+
+	var ret string
+	if _, err := client.Call(context.Background(), "Bar", nil, &ret); err != nil {
+		t.Fatal(err)
+	}
+	if ret != "returned from Responder" {
 		t.Fatalf("unexpected ret: %v", ret)
 	}
 }
