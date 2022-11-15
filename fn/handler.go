@@ -16,6 +16,13 @@ import (
 // registering each method as a handler using its method name. From there, methods
 // are treated just like functions.
 //
+// The registered methods can be limited by providing an interface type parameter:
+//
+//	h := HandlerFrom[interface{
+//		OnlyTheseMethods()
+//		WillBeRegistered()
+//	}](myHandlerImplementation)
+//
 // Function handlers expect an array to use as arguments. If the incoming argument
 // array is too large or too small, the handler returns an error. Functions can opt-in
 // to take a final Call pointer argument, allowing the handler to give it the Call value
@@ -27,13 +34,14 @@ import (
 //
 // Structs that implement the Handler interface will be added as a catch-all handler
 // along with their individual methods. This lets you implement dynamic methods.
-func HandlerFrom(v interface{}) rpc.Handler {
+func HandlerFrom[T any](v T) rpc.Handler {
 	rv := reflect.Indirect(reflect.ValueOf(v))
 	switch rv.Type().Kind() {
 	case reflect.Func:
-		return fromFunc(v, nil)
+		return fromFunc(reflect.ValueOf(v))
 	case reflect.Struct:
-		return fromMethods(v)
+		t := reflect.TypeOf((*T)(nil)).Elem()
+		return fromMethods(v, t)
 	default:
 		panic("must be func or struct")
 	}
@@ -44,11 +52,14 @@ func HandlerFrom(v interface{}) rpc.Handler {
 // more specific slice types ([]int{}, etc) if all arguments are of the same type.
 type Args []any
 
-func fromMethods(rcvr interface{}) rpc.Handler {
-	t := reflect.TypeOf(rcvr)
+func fromMethods(rcvr interface{}, t reflect.Type) rpc.Handler {
+	// If `t` is an interface, `Convert()` wraps the value with that interface
+	// type. This makes sure that the Method(i) indexes match for getting both the
+	// name and implementation.
+	rcvrval := reflect.ValueOf(rcvr).Convert(t)
 	mux := rpc.NewRespondMux()
 	for i := 0; i < t.NumMethod(); i++ {
-		mux.Handle(t.Method(i).Name, fromFunc(t.Method(i).Func.Interface(), rcvr))
+		mux.Handle(t.Method(i).Name, fromFunc(rcvrval.Method(i)))
 	}
 	h, ok := rcvr.(rpc.Handler)
 	if ok {
@@ -57,10 +68,8 @@ func fromMethods(rcvr interface{}) rpc.Handler {
 	return mux
 }
 
-func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
-	fn := reflect.ValueOf(fn_)
-	rcvr := reflect.ValueOf(rcvr_)
-	fntyp := reflect.TypeOf(fn_)
+func fromFunc(fn reflect.Value) rpc.Handler {
+	fntyp := fn.Type()
 
 	return rpc.HandlerFunc(func(r rpc.Responder, c *rpc.Call) {
 		defer func() {
@@ -83,14 +92,7 @@ func fromFunc(fn_ interface{}, rcvr_ interface{}) rpc.Handler {
 
 		var fnParams []reflect.Value
 
-		if rcvr.IsValid() {
-			fnParams = append(fnParams, rcvr)
-		}
-
 		for idx, param := range params.Elem().Interface().([]interface{}) {
-			if rcvr.IsValid() {
-				idx++
-			}
 			switch fntyp.In(idx).Kind() {
 			case reflect.Struct:
 				// decode to struct type using mapstructure
