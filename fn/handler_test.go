@@ -237,3 +237,35 @@ func TestHandlerFromMethodsInterface(t *testing.T) {
 		t.Fatalf("unexpected ret: %v", ret)
 	}
 }
+
+func TestHandlerFromMethodsInterfaceDifferentMethod(t *testing.T) {
+	// Also check a different method to ensure that the reflection code is
+	// matching the correct method based on the interface and not just getting
+	// Method(0) which matches up in the first test.
+	handler := HandlerFrom[interface {
+		Bar()
+	}](&mockMethods{})
+	mux, ok := handler.(*rpc.RespondMux)
+	if !ok {
+		t.Fatal("expected handler to be rpc.RespondMux")
+	}
+	h, _ := mux.Match("Bar")
+	if h == nil {
+		t.Fatal("expected Bar handler")
+	}
+	h, _ = mux.Match("Foo")
+	if h != nil {
+		t.Fatal("expected no handler for Foo method not on interface")
+	}
+
+	client, _ := rpctest.NewPair(mux, codec.JSONCodec{})
+	defer client.Close()
+
+	var ret string
+	if _, err := client.Call(context.Background(), "Bar", nil, &ret); err != nil {
+		t.Fatal(err)
+	}
+	if ret != "" {
+		t.Fatalf("unexpected ret: %v", ret)
+	}
+}

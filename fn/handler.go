@@ -53,6 +53,9 @@ func HandlerFrom[T any](v T) rpc.Handler {
 type Args []any
 
 func fromMethods(rcvr interface{}, t reflect.Type) rpc.Handler {
+	// If `t` is an interface, `Convert()` wraps the value with that interface
+	// type. This makes sure that the Method(i) indexes match for getting both the
+	// name and implementation.
 	rcvrval := reflect.ValueOf(rcvr).Convert(t)
 	mux := rpc.NewRespondMux()
 	for i := 0; i < t.NumMethod(); i++ {
