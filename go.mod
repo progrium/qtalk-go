@@ -1,6 +1,6 @@
 module github.com/progrium/qtalk-go
 
-go 1.16
+go 1.18
 
 require (
 	github.com/mitchellh/mapstructure v1.4.3
