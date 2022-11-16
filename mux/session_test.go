@@ -26,6 +26,9 @@ func TestQmux(t *testing.T) {
 	fatal(err, t)
 	defer l.Close()
 
+	testComplete := make(chan struct{})
+	sessionClosed := make(chan struct{})
+
 	go func() {
 		conn, err := l.Accept()
 		fatal(err, t)
@@ -40,13 +43,16 @@ func TestQmux(t *testing.T) {
 		ch.Close() // should already be closed by other end
 
 		ch, err = sess.Accept()
+		fatal(err, t)
 		_, err = ch.Write(b)
 		fatal(err, t)
 		err = ch.CloseWrite()
 		fatal(err, t)
 
+		<-testComplete
 		err = sess.Close()
 		fatal(err, t)
+		close(sessionClosed)
 	}()
 
 	conn, err := net.Dial("tcp", l.Addr().String())
@@ -83,6 +89,8 @@ func TestQmux(t *testing.T) {
 	if !bytes.Equal(b, []byte("Hello world")) {
 		t.Fatalf("unexpected bytes: %s", b)
 	}
+	close(testComplete)
+	<-sessionClosed
 }
 
 func TestSessionOpenClientTimeout(t *testing.T) {
