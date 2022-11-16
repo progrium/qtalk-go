@@ -73,6 +73,11 @@ func TestParseReturn(t *testing.T) {
 			"multiple value with non-nil error", func() (int, float64, error) { return 42, 0.5, fmt.Errorf("an error") }, nil,
 			nil, true,
 		},
+
+		{
+			"return error as value", func() any { return fmt.Errorf("an error") }, nil,
+			[]any{fmt.Errorf("an error")}, false,
+		},
 	}
 	for _, td := range tests {
 		t.Run(td.name, func(t *testing.T) {
