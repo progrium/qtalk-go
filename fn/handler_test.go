@@ -98,7 +98,7 @@ func TestHandlerFromFunc(t *testing.T) {
 
 		var sum int
 		_, err := client.Call(context.Background(), "", []interface{}{2}, &sum)
-		if err == nil || !strings.Contains(err.Error(), "too few") {
+		if err == nil || !strings.Contains(err.Error(), "expected 2 params") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
@@ -111,7 +111,7 @@ func TestHandlerFromFunc(t *testing.T) {
 
 		var sum int
 		_, err := client.Call(context.Background(), "", []interface{}{2, 3, 5}, &sum)
-		if err == nil || !strings.Contains(err.Error(), "too many") {
+		if err == nil || !strings.Contains(err.Error(), "expected 2 params") {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
