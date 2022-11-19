@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/progrium/qtalk-go/mux/frame"
 )
@@ -24,6 +25,12 @@ const (
 	// primarily for testing: setting chanSize=0 uncovers deadlocks more
 	// quickly.
 	chanSize = 16
+)
+
+var (
+	// timeout for queuing a new channel to be `Accept`ed
+	// use a `var` so that this can be overridden in tests
+	openTimeout = 30 * time.Second
 )
 
 // Session is a bi-directional channel muxing session on a given transport.
@@ -50,7 +57,7 @@ func New(t io.ReadWriteCloser) *Session {
 		t:       t,
 		enc:     frame.NewEncoder(t),
 		dec:     frame.NewDecoder(t),
-		inbox:   make(chan *Channel, chanSize),
+		inbox:   make(chan *Channel),
 		errCond: sync.NewCond(new(sync.Mutex)),
 		closeCh: make(chan bool, 1),
 	}
@@ -192,12 +199,19 @@ func (s *Session) handleOpen(msg *frame.OpenMessage) error {
 	c.maxRemotePayload = msg.MaxPacketSize
 	c.remoteWin.add(msg.WindowSize)
 	c.maxIncomingPayload = channelMaxPacket
-	s.inbox <- c
-
-	return s.enc.Encode(frame.OpenConfirmMessage{
-		ChannelID:     c.remoteId,
-		SenderID:      c.localId,
-		WindowSize:    c.myWindow,
-		MaxPacketSize: c.maxIncomingPayload,
-	})
+	t := time.NewTimer(openTimeout)
+	defer t.Stop()
+	select {
+	case s.inbox <- c:
+		return s.enc.Encode(frame.OpenConfirmMessage{
+			ChannelID:     c.remoteId,
+			SenderID:      c.localId,
+			WindowSize:    c.myWindow,
+			MaxPacketSize: c.maxIncomingPayload,
+		})
+	case <-t.C:
+		return s.enc.Encode(frame.OpenFailureMessage{
+			ChannelID: msg.SenderID,
+		})
+	}
 }
