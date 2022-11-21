@@ -14,7 +14,7 @@ type mockCaller struct {
 	params, reply interface{}
 }
 
-func (mc *mockCaller) Call(ctx context.Context, selector string, params, reply interface{}) (*rpc.Response, error) {
+func (mc *mockCaller) Call(ctx context.Context, selector string, params any, reply ...any) (*rpc.Response, error) {
 	mc.selector = selector
 	mc.params = params
 	mc.reply = reply

@@ -109,8 +109,7 @@ func fromFunc(fn reflect.Value) rpc.Handler {
 			r.Return(nil)
 			return
 		}
-		// TODO support multiple return values
-		r.Return(ret[0])
+		r.Return(ret...)
 	})
 }
 

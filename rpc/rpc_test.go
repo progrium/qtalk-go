@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/progrium/qtalk-go/codec"
@@ -282,6 +283,28 @@ func TestRPC(t *testing.T) {
 			if rErr.Error() != "remote: internal server error" {
 				t.Fatal("unexpected error:", rErr)
 			}
+		}
+	})
+
+	t.Run("multi-return rpc", func(t *testing.T) {
+		client, _ := newTestPair(HandlerFunc(func(r Responder, c *Call) {
+			var in string
+			fatal(t, c.Receive(&in))
+			r.Return(in, strings.ToUpper(in))
+		}))
+		defer client.Close()
+
+		var out, out2 string
+		resp, err := client.Call(ctx, "", "Hello world", &out, &out2)
+		fatal(t, err)
+		if resp.Continue {
+			t.Fatal("unexpected continue")
+		}
+		if out != "Hello world" {
+			t.Errorf("unexpected return 1: %#v", out)
+		}
+		if out2 != "HELLO WORLD" {
+			t.Errorf("unexpected return 2: %#v", out)
 		}
 	})
 
