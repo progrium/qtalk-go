@@ -3,6 +3,7 @@ package fn
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -31,6 +32,16 @@ func equal(expected, actual []any) bool {
 		return len(actual) == 0
 	}
 	return reflect.DeepEqual(expected, actual)
+}
+
+func TestCallCatchPanic(t *testing.T) {
+	ret, err := Call(func() { panic("catch me!") }, nil)
+	if ret != nil {
+		t.Errorf("expected nil return, got: %v", ret)
+	}
+	if err == nil || !strings.Contains(err.Error(), "catch me!") {
+		t.Errorf("expected to panic info in an error, got: %v", err)
+	}
 }
 
 func TestParseReturn(t *testing.T) {

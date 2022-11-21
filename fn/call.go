@@ -11,7 +11,12 @@ var errorInterface = reflect.TypeOf((*error)(nil)).Elem()
 
 // Call wraps invoking a function via reflection, converting the arguments with
 // ArgsTo and the returns with ParseReturn.
-func Call(fn any, args []any) ([]any, error) {
+func Call(fn any, args []any) (_ []any, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("panic: %s [%s]", p, identifyPanic())
+		}
+	}()
 	fnval := reflect.ValueOf(fn)
 	fnParams, err := ArgsTo(fnval.Type(), args)
 	if err != nil {
