@@ -44,6 +44,25 @@ func TestCallCatchPanic(t *testing.T) {
 	}
 }
 
+func TestCallArgStructSlice(t *testing.T) {
+	type arg struct{ V int }
+
+	acutal, err := Call(func(vs []arg) int {
+		sum := 0
+		for _, v := range vs {
+			sum += v.V
+		}
+		return sum
+	}, []any{[]arg{{1}, {2}, {3}}})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := []any{int(6)}
+	if !reflect.DeepEqual(expected, acutal) {
+		t.Errorf("expected %#v, got %#v", expected, acutal)
+	}
+}
+
 func TestParseReturn(t *testing.T) {
 	tests := []struct {
 		name        string
