@@ -134,6 +134,11 @@ func (r *responder) respond(values []any, continue_ bool) error {
 		return err
 	}
 
+	// The original calling convention expects at least one return, so return
+	// `nil` if there is no other return value.
+	if len(values) == 0 {
+		values = []any{nil}
+	}
 	for _, v := range values {
 		if err := r.Send(v); err != nil {
 			return err

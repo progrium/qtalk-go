@@ -105,10 +105,6 @@ func fromFunc(fn reflect.Value) rpc.Handler {
 			r.Return(err)
 			return
 		}
-		if len(ret) == 0 {
-			r.Return(nil)
-			return
-		}
 		r.Return(ret...)
 	})
 }
