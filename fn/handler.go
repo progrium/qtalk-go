@@ -1,13 +1,11 @@
 package fn
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/progrium/qtalk-go/rpc"
 )
 
@@ -80,8 +78,12 @@ func fromMethods(rcvr interface{}, t reflect.Type) rpc.Handler {
 	return mux
 }
 
+var callRef = reflect.TypeOf((*rpc.Call)(nil))
+
 func fromFunc(fn reflect.Value) rpc.Handler {
 	fntyp := fn.Type()
+	// if the last argument in fn is an rpc.Call, add our call to fnParams
+	expectsCallParam := fntyp.NumIn() > 0 && fntyp.In(fntyp.NumIn()-1) == callRef
 
 	return rpc.HandlerFunc(func(r rpc.Responder, c *rpc.Call) {
 		defer func() {
@@ -90,97 +92,26 @@ func fromFunc(fn reflect.Value) rpc.Handler {
 			}
 		}()
 
-		params := reflect.New(reflect.TypeOf([]interface{}{}))
-
-		if err := c.Receive(params.Interface()); err != nil {
+		var params []any
+		if err := c.Receive(&params); err != nil {
 			r.Return(fmt.Errorf("fn: args: %s", err.Error()))
 			return
 		}
-
-		if params.Elem().Len() > fn.Type().NumIn() {
-			r.Return(errors.New("fn: too many input arguments"))
+		if expectsCallParam {
+			params = append(params, c)
+		}
+		ret, err := Call(fn.Interface(), params)
+		if err != nil {
+			r.Return(err)
 			return
 		}
-
-		var fnParams []reflect.Value
-
-		for idx, param := range params.Elem().Interface().([]interface{}) {
-			switch fntyp.In(idx).Kind() {
-			case reflect.Struct:
-				// decode to struct type using mapstructure
-				arg := reflect.New(fntyp.In(idx))
-				if err := mapstructure.Decode(param, arg.Interface()); err != nil {
-					r.Return(fmt.Errorf("fn: mapstructure: %s", err.Error()))
-					return
-				}
-				fnParams = append(fnParams, ensureType(arg.Elem(), fntyp.In(idx)))
-			case reflect.Slice:
-				rv := reflect.ValueOf(param)
-				// decode slice of structs to struct type using mapstructure
-				if fntyp.In(idx).Elem().Kind() == reflect.Struct {
-					nv := reflect.MakeSlice(fntyp.In(idx), rv.Len(), rv.Len())
-					for i := 0; i < rv.Len(); i++ {
-						ref := reflect.New(nv.Index(i).Type())
-						if err := mapstructure.Decode(rv.Index(i).Interface(), ref.Interface()); err != nil {
-							r.Return(fmt.Errorf("fn: mapstructure: %s", err.Error()))
-							return
-						}
-						nv.Index(i).Set(reflect.Indirect(ref))
-					}
-					rv = nv
-				}
-				fnParams = append(fnParams, rv)
-			case reflect.Int:
-				// if int is expected cast the float64 (assumes json-like encoding)
-				fnParams = append(fnParams, ensureType(reflect.ValueOf(int(param.(float64))), fntyp.In(idx)))
-			default:
-				fnParams = append(fnParams, ensureType(reflect.ValueOf(param), fntyp.In(idx)))
-			}
-		}
-
-		// if the last argument in fn is an rpc.Call, add our call to fnParams
-		if fn.Type().NumIn() > 0 {
-			callRef := reflect.TypeOf(&rpc.Call{})
-			if fn.Type().In(fn.Type().NumIn()-1) == callRef {
-				fnParams = append(fnParams, reflect.ValueOf(c))
-			}
-		}
-
-		if len(fnParams) < fn.Type().NumIn() {
-			r.Return(errors.New("fn: too few input arguments"))
+		if len(ret) == 0 {
+			r.Return(nil)
 			return
 		}
-
-		fnReturn := fn.Call(fnParams)
-
-		r.Return(parseReturn(fnReturn))
+		// TODO support multiple return values
+		r.Return(ret[0])
 	})
-}
-
-// parseReturn turns a slice of reflect.Values into a value or an error
-func parseReturn(ret []reflect.Value) interface{} {
-	if len(ret) == 0 {
-		return nil
-	}
-	if len(ret) == 1 {
-		return ret[0].Interface()
-	}
-
-	var retVal reflect.Value
-	errorInterface := reflect.TypeOf((*error)(nil)).Elem()
-
-	// assuming up to 2 return values, one being an error
-	for _, v := range ret[:2] {
-		if v.Type().Implements(errorInterface) {
-			if !v.IsNil() {
-				return v.Interface().(error)
-			}
-		} else {
-			retVal = v
-		}
-	}
-
-	return retVal.Interface()
 }
 
 // ensureType ensures a value is converted to the expected
