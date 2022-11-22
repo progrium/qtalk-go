@@ -12,7 +12,7 @@ type ioListener struct {
 }
 
 // Accept will always return the wrapped ReadWriteCloser as a mux session.
-func (l *ioListener) Accept() (*Session, error) {
+func (l *ioListener) Accept() (Session, error) {
 	return New(l.ReadWriteCloser), nil
 }
 

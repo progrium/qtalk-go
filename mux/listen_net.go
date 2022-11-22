@@ -10,7 +10,7 @@ type netListener struct {
 }
 
 // Accept waits for and returns the next connected session to the listener.
-func (l *netListener) Accept() (*Session, error) {
+func (l *netListener) Accept() (Session, error) {
 	conn, err := l.Listener.Accept()
 	if err != nil {
 		return nil, err

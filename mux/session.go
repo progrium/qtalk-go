@@ -34,14 +34,21 @@ var (
 )
 
 // Session is a bi-directional channel muxing session on a given transport.
-type Session struct {
+type Session interface {
+	io.Closer
+	Accept() (Channel, error)
+	Open(ctx context.Context) (Channel, error)
+	Wait() error
+}
+
+type session struct {
 	t     io.ReadWriteCloser
 	chans chanList
 
 	enc *frame.Encoder
 	dec *frame.Decoder
 
-	inbox chan *Channel
+	inbox chan Channel
 
 	errCond *sync.Cond
 	err     error
@@ -49,15 +56,15 @@ type Session struct {
 }
 
 // NewSession returns a session that runs over the given transport.
-func New(t io.ReadWriteCloser) *Session {
+func New(t io.ReadWriteCloser) Session {
 	if t == nil {
 		return nil
 	}
-	s := &Session{
+	s := &session{
 		t:       t,
 		enc:     frame.NewEncoder(t),
 		dec:     frame.NewDecoder(t),
-		inbox:   make(chan *Channel),
+		inbox:   make(chan Channel),
 		errCond: sync.NewCond(new(sync.Mutex)),
 		closeCh: make(chan bool, 1),
 	}
@@ -66,14 +73,14 @@ func New(t io.ReadWriteCloser) *Session {
 }
 
 // Close closes the underlying transport.
-func (s *Session) Close() error {
+func (s *session) Close() error {
 	s.t.Close()
 	return nil
 }
 
 // Wait blocks until the transport has shut down, and returns the
 // error causing the shutdown.
-func (s *Session) Wait() error {
+func (s *session) Wait() error {
 	s.errCond.L.Lock()
 	defer s.errCond.L.Unlock()
 	for s.err == nil {
@@ -83,7 +90,7 @@ func (s *Session) Wait() error {
 }
 
 // Accept waits for and returns the next incoming channel.
-func (s *Session) Accept() (*Channel, error) {
+func (s *session) Accept() (Channel, error) {
 	select {
 	case ch := <-s.inbox:
 		return ch, nil
@@ -93,7 +100,7 @@ func (s *Session) Accept() (*Channel, error) {
 }
 
 // Open establishes a new channel with the other end.
-func (s *Session) Open(ctx context.Context) (*Channel, error) {
+func (s *session) Open(ctx context.Context) (Channel, error) {
 	ch := s.newChannel(channelOutbound)
 	ch.maxIncomingPayload = channelMaxPacket
 
@@ -128,8 +135,8 @@ func (s *Session) Open(ctx context.Context) (*Channel, error) {
 	}
 }
 
-func (s *Session) newChannel(direction channelDirection) *Channel {
-	ch := &Channel{
+func (s *session) newChannel(direction channelDirection) *channel {
+	ch := &channel{
 		remoteWin: window{Cond: sync.NewCond(new(sync.Mutex))},
 		myWindow:  channelWindowSize,
 		pending:   newBuffer(),
@@ -144,7 +151,7 @@ func (s *Session) newChannel(direction channelDirection) *Channel {
 
 // loop runs the connection machine. It will process packets until an
 // error is encountered. To synchronize on loop exit, use session.Wait.
-func (s *Session) loop() {
+func (s *session) loop() {
 	var err error
 	for err == nil {
 		err = s.onePacket()
@@ -164,7 +171,7 @@ func (s *Session) loop() {
 }
 
 // onePacket reads and processes one packet.
-func (s *Session) onePacket() error {
+func (s *session) onePacket() error {
 	var err error
 	var msg frame.Message
 
@@ -187,7 +194,7 @@ func (s *Session) onePacket() error {
 }
 
 // handleChannelOpen schedules a channel to be Accept()ed.
-func (s *Session) handleOpen(msg *frame.OpenMessage) error {
+func (s *session) handleOpen(msg *frame.OpenMessage) error {
 	if msg.MaxPacketSize < minPacketLength || msg.MaxPacketSize > maxPacketLength {
 		return s.enc.Encode(frame.OpenFailureMessage{
 			ChannelID: msg.SenderID,
