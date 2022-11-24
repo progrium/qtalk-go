@@ -1,5 +1,7 @@
 github.com/mitchellh/mapstructure v1.4.3 h1:OVowDSCllw/YjdLkam3/sm7wEtOy59d8ndGgCcyj8cs=
 github.com/mitchellh/mapstructure v1.4.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
+github.com/progrium/clon-go v0.0.0-20221124010328-fe21965c77cb h1:JOIT5Xis32KAzdeYPw4SAVi+XVmxu0/ZT23I8CGERV4=
+github.com/progrium/clon-go v0.0.0-20221124010328-fe21965c77cb/go.mod h1:mK13Psvk5yH/kw24KHy9ozYXrJAPtvyKqAdmqT7izfM=
 github.com/rs/xid v1.3.0 h1:6NjYksEUlhurdVehpc7S7dk6DAmcKv8V9gG0FsVN2U4=
 github.com/rs/xid v1.3.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 golang.org/x/net v0.0.0-20210420210106-798c2154c571 h1:Q6Bg8xzKzpFPU4Oi1sBnBTHBwlMsLeEXpu4hYBY8rAg=
