@@ -18,12 +18,12 @@ func (e RemoteError) Error() string {
 
 // Client wraps a session and codec to make RPC calls over the session.
 type Client struct {
-	*mux.Session
+	mux.Session
 	codec codec.Codec
 }
 
 // NewClient takes a session and codec to make a client for making RPC calls.
-func NewClient(session *mux.Session, codec codec.Codec) *Client {
+func NewClient(session mux.Session, codec codec.Codec) *Client {
 	return &Client{
 		Session: session,
 		codec:   codec,

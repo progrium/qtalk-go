@@ -8,14 +8,14 @@ import (
 
 // Peer is a mux session, RPC client and responder, all in one.
 type Peer struct {
-	*mux.Session
+	mux.Session
 	*rpc.Client
 	*rpc.RespondMux
 	codec.Codec
 }
 
 // NewPeer returns a Peer based on a session and codec.
-func NewPeer(session *mux.Session, codec codec.Codec) *Peer {
+func NewPeer(session mux.Session, codec codec.Codec) *Peer {
 	return &Peer{
 		Session:    session,
 		Codec:      codec,

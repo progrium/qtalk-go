@@ -9,7 +9,7 @@ type Listener interface {
 	Close() error
 
 	// Accept waits for and returns the next incoming session.
-	Accept() (*Session, error)
+	Accept() (Session, error)
 
 	// Addr returns the listener's network address if available.
 	Addr() net.Addr

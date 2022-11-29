@@ -23,9 +23,15 @@ func min(a uint32, b int) uint32 {
 	return uint32(b)
 }
 
-// Channel is an implementation of the Channel interface that works
-// with the Session class.
-type Channel struct {
+type Channel interface {
+	io.ReadWriteCloser
+	ID() uint32
+	CloseWrite() error
+}
+
+// channel is an implementation of the Channel interface that works
+// with the session class.
+type channel struct {
 
 	// R/O after creation
 	localId, remoteId uint32
@@ -37,7 +43,7 @@ type Channel struct {
 	maxIncomingPayload uint32
 	maxRemotePayload   uint32
 
-	session *Session
+	session *session
 
 	// direction contains either channelOutbound, for channels created
 	// locally, or channelInbound, for channels created by the peer.
@@ -69,13 +75,13 @@ type Channel struct {
 
 // ID returns the unique identifier of this channel
 // within the session
-func (ch *Channel) ID() uint32 {
+func (ch *channel) ID() uint32 {
 	return ch.localId
 }
 
 // CloseWrite signals the end of sending data.
 // The other side may still send data
-func (ch *Channel) CloseWrite() error {
+func (ch *channel) CloseWrite() error {
 	ch.sentEOF = true
 	return ch.send(frame.EOFMessage{
 		ChannelID: ch.remoteId})
@@ -83,13 +89,13 @@ func (ch *Channel) CloseWrite() error {
 
 // Close signals end of channel use. No data may be sent after this
 // call.
-func (ch *Channel) Close() error {
+func (ch *channel) Close() error {
 	return ch.send(frame.CloseMessage{
 		ChannelID: ch.remoteId})
 }
 
 // Write writes len(data) bytes to the channel.
-func (ch *Channel) Write(data []byte) (n int, err error) {
+func (ch *channel) Write(data []byte) (n int, err error) {
 	if ch.sentEOF {
 		return 0, io.EOF
 	}
@@ -118,7 +124,7 @@ func (ch *Channel) Write(data []byte) (n int, err error) {
 }
 
 // Read reads up to len(data) bytes from the channel.
-func (c *Channel) Read(data []byte) (n int, err error) {
+func (c *channel) Read(data []byte) (n int, err error) {
 	n, err = c.pending.Read(data)
 
 	if n > 0 {
@@ -136,7 +142,7 @@ func (c *Channel) Read(data []byte) (n int, err error) {
 
 // sends writes a message frame. If the message is a channel close, it updates
 // sentClose. This method takes the lock c.writeMu.
-func (ch *Channel) send(msg frame.Message) error {
+func (ch *channel) send(msg frame.Message) error {
 	ch.writeMu.Lock()
 	defer ch.writeMu.Unlock()
 
@@ -151,7 +157,7 @@ func (ch *Channel) send(msg frame.Message) error {
 	return ch.session.enc.Encode(msg)
 }
 
-func (c *Channel) adjustWindow(n uint32) error {
+func (c *channel) adjustWindow(n uint32) error {
 	c.windowMu.Lock()
 	// Since myWindow is managed on our side, and can never exceed
 	// the initial window setting, we don't worry about overflow.
@@ -163,7 +169,7 @@ func (c *Channel) adjustWindow(n uint32) error {
 	})
 }
 
-func (c *Channel) close() {
+func (c *channel) close() {
 	c.pending.eof()
 	close(c.msg)
 	c.writeMu.Lock()
@@ -178,14 +184,14 @@ func (c *Channel) close() {
 // responseMessageReceived is called when a success or failure message is
 // received on a channel to check that such a message is reasonable for the
 // given channel.
-func (ch *Channel) responseMessageReceived() error {
+func (ch *channel) responseMessageReceived() error {
 	if ch.direction == channelInbound {
 		return errors.New("qmux: channel response message received on inbound channel")
 	}
 	return nil
 }
 
-func (ch *Channel) handle(msg frame.Message) error {
+func (ch *channel) handle(msg frame.Message) error {
 	switch m := msg.(type) {
 	case *frame.DataMessage:
 		return ch.handleData(m)
@@ -234,7 +240,7 @@ func (ch *Channel) handle(msg frame.Message) error {
 	}
 }
 
-func (ch *Channel) handleData(msg *frame.DataMessage) error {
+func (ch *channel) handleData(msg *frame.DataMessage) error {
 	if msg.Length > ch.maxIncomingPayload {
 		// TODO(hanwen): should send Disconnect?
 		return errors.New("qmux: incoming packet exceeds maximum payload size")

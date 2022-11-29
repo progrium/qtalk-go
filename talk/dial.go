@@ -8,7 +8,7 @@ import (
 )
 
 // A Dialer connects to address and establishes a mux.Session
-type Dialer func(addr string) (*mux.Session, error)
+type Dialer func(addr string) (mux.Session, error)
 
 // Dialers is map of transport strings to Dialers
 // and includes all builtin transports
@@ -19,7 +19,7 @@ func init() {
 		"tcp":  mux.DialTCP,
 		"unix": mux.DialUnix,
 		"ws":   mux.DialWS,
-		"stdio": func(_ string) (*mux.Session, error) {
+		"stdio": func(_ string) (mux.Session, error) {
 			return mux.DialStdio()
 		},
 	}
