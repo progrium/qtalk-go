@@ -10,11 +10,12 @@ import (
 // A Caller is able to perform remote calls.
 //
 // Call makes synchronous calls to the remote selector passing args and putting the reply
-// value in reply. Both args and reply can be nil. Args can be a channel of interface{}
+// value(s) in reply. Both args and reply can be nil. Args can be a channel of interface{}
 // values for asynchronously streaming multiple values from another goroutine, however
 // the call will still block until a response is sent. If there is an error making the call
 // an error is returned, and if an error is returned by the remote handler a RemoteError
-// is returned.
+// is returned. Multiple reply parameters can be provided in order to receive multi-valued
+// returns from the remote call.
 //
 // A Response value is also returned for advanced operations. For example, you can check
 // if the call is continued, meaning the underlying channel will be kept open for either
