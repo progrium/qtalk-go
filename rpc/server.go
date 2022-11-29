@@ -94,7 +94,7 @@ func (s *Server) respond(hn Handler, sess mux.Session, ch mux.Channel, ctx conte
 
 	hn.RespondRPC(resp, &call)
 	if !resp.responded {
-		resp.Return(nil)
+		resp.Return()
 	}
 	if !resp.header.Continue {
 		ch.Close()

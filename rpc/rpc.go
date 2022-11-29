@@ -10,17 +10,18 @@ import (
 // A Caller is able to perform remote calls.
 //
 // Call makes synchronous calls to the remote selector passing args and putting the reply
-// value in reply. Both args and reply can be nil. Args can be a channel of interface{}
+// value(s) in reply. Both args and reply can be nil. Args can be a channel of interface{}
 // values for asynchronously streaming multiple values from another goroutine, however
 // the call will still block until a response is sent. If there is an error making the call
 // an error is returned, and if an error is returned by the remote handler a RemoteError
-// is returned.
+// is returned. Multiple reply parameters can be provided in order to receive multi-valued
+// returns from the remote call.
 //
 // A Response value is also returned for advanced operations. For example, you can check
 // if the call is continued, meaning the underlying channel will be kept open for either
 // streaming back more results or using the channel as a full duplex byte stream.
 type Caller interface {
-	Call(ctx context.Context, selector string, params, reply interface{}) (*Response, error)
+	Call(ctx context.Context, selector string, params any, reply ...any) (*Response, error)
 }
 
 // CallHeader is the first value encoded over the channel to make a call.
@@ -81,12 +82,12 @@ func (r *Response) Receive(v interface{}) error {
 // Responder is used by handlers to initiate a response and send values to the caller.
 type Responder interface {
 	// Return sends a return value, which can be an error, and closes the channel.
-	Return(interface{}) error
+	Return(...any) error
 
 	// Continue sets the response to keep the channel open after sending a return value,
 	// and returns the underlying channel for you to take control of. If called, you
 	// become responsible for closing the channel.
-	Continue(interface{}) (mux.Channel, error)
+	Continue(...any) (mux.Channel, error)
 
 	// Send encodes a value over the underlying channel, but does not initiate a response,
 	// so it must be used after calling Continue.
@@ -104,36 +105,45 @@ func (r *responder) Send(v interface{}) error {
 	return r.c.Encoder(r.ch).Encode(v)
 }
 
-func (r *responder) Return(v interface{}) error {
+func (r *responder) Return(v ...any) error {
 	return r.respond(v, false)
 }
 
-func (r *responder) Continue(v interface{}) (mux.Channel, error) {
+func (r *responder) Continue(v ...any) (mux.Channel, error) {
 	return r.ch, r.respond(v, true)
 }
 
-func (r *responder) respond(v interface{}, continue_ bool) error {
+func (r *responder) respond(values []any, continue_ bool) error {
 	r.responded = true
 	r.header.Continue = continue_
 
-	// if v is error, set v to nil
+	// if values is a single error, set values to [nil]
 	// and put error in header
-	var e error
-	var ok bool
-	if e, ok = v.(error); ok {
-		v = nil
-	}
-	if e != nil {
-		var errStr = e.Error()
-		r.header.Error = &errStr
+	if len(values) == 1 {
+		var e error
+		var ok bool
+		if e, ok = values[0].(error); ok {
+			values = []any{nil}
+		}
+		if e != nil {
+			var errStr = e.Error()
+			r.header.Error = &errStr
+		}
 	}
 
 	if err := r.Send(r.header); err != nil {
 		return err
 	}
 
-	if err := r.Send(v); err != nil {
-		return err
+	// The original calling convention expects at least one return, so return
+	// `nil` if there is no other return value.
+	if len(values) == 0 {
+		values = []any{nil}
+	}
+	for _, v := range values {
+		if err := r.Send(v); err != nil {
+			return err
+		}
 	}
 
 	if !continue_ {

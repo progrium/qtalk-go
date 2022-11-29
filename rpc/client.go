@@ -40,7 +40,7 @@ func NewClient(session mux.Session, codec codec.Codec) *Client {
 // A Response value is also returned for advanced operations. For example, you can check
 // if the call is continued, meaning the underlying channel will be kept open for either
 // streaming back more results or using the channel as a full duplex byte stream.
-func (c *Client) Call(ctx context.Context, selector string, args, reply interface{}) (*Response, error) {
+func (c *Client) Call(ctx context.Context, selector string, args any, replies ...any) (*Response, error) {
 	ch, err := c.Session.Open(ctx)
 	if err != nil {
 		return nil, err
@@ -91,21 +91,27 @@ func (c *Client) Call(ctx context.Context, selector string, args, reply interfac
 	resp := &Response{
 		ResponseHeader: header,
 		Channel:        ch,
-		Reply:          reply,
 		codec:          framer,
+	}
+	if len(replies) == 1 {
+		resp.Reply = replies[0]
+	} else if len(replies) > 1 {
+		resp.Reply = replies
 	}
 	if resp.Error != nil {
 		return resp, RemoteError(*resp.Error)
 	}
 
-	if reply == nil {
+	if resp.Reply == nil {
 		// read into throwaway buffer
 		var buf []byte
 		dec.Decode(&buf)
 	} else {
 		// TODO: timeout
-		if err := dec.Decode(resp.Reply); err != nil {
-			return resp, err
+		for _, r := range replies {
+			if err := dec.Decode(r); err != nil {
+				return resp, err
+			}
 		}
 	}
 
