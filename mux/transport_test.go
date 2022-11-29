@@ -10,9 +10,9 @@ import (
 	"testing"
 )
 
-func testExchange(t *testing.T, sess *Session) {
+func testExchange(t *testing.T, sess Session) {
 	var err error
-	var ch *Channel
+	var ch Channel
 	t.Run("session accept", func(t *testing.T) {
 		ch, err = sess.Accept()
 		fatal(err, t)

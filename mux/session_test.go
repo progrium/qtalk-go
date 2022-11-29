@@ -61,7 +61,7 @@ func TestQmux(t *testing.T) {
 
 	sess := New(conn)
 
-	var ch *Channel
+	var ch Channel
 	t.Run("session accept", func(t *testing.T) {
 		ch, err = sess.Accept()
 		fatal(err, t)

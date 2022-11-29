@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func setupProxy(t *testing.T) (func(), chan error, *Session, *Session) {
+func setupProxy(t *testing.T) (func(), chan error, Session, Session) {
 	la, err := net.Listen("tcp", "127.0.0.1:0")
 	fatal(err, t)
 	lb, err := net.Listen("tcp", "127.0.0.1:0")

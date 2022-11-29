@@ -11,11 +11,11 @@ import (
 // wsListener wraps a net.Listener and WebSocket server to return connected mux sessions.
 type wsListener struct {
 	net.Listener
-	accepted chan *Session
+	accepted chan Session
 }
 
 // Accept waits for and returns the next connected session to the listener.
-func (l *wsListener) Accept() (*Session, error) {
+func (l *wsListener) Accept() (Session, error) {
 	sess, ok := <-l.accepted
 	if !ok {
 		return nil, io.EOF
@@ -42,7 +42,7 @@ func ListenWS(addr string) (Listener, error) {
 	}
 	wsl := &wsListener{
 		Listener: l,
-		accepted: make(chan *Session),
+		accepted: make(chan Session),
 	}
 	srv := &http.Server{
 		Addr: addr,

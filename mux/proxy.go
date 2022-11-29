@@ -10,7 +10,7 @@ import (
 // an io.Copy in both directions in goroutines. Proxy returns non-EOF errors
 // from src.Accept, nil on EOF, and any errors from dst.Open after closing
 // the accepted channel from src.
-func Proxy(dst *Session, src *Session) error {
+func Proxy(dst, src Session) error {
 	for {
 		ctx := context.Background()
 		a, err := src.Accept()
@@ -29,7 +29,7 @@ func Proxy(dst *Session, src *Session) error {
 	}
 }
 
-func proxy(a, b *Channel) {
+func proxy(a, b Channel) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {

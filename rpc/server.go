@@ -37,7 +37,7 @@ func (s *Server) Serve(l net.Listener) error {
 // returned. If the handler does not call Continue, the channel will be closed. Respond will panic if Codec is nil.
 //
 // If the context is not nil, it will be added to Calls. Otherwise the Call Context will be set to a context.Background().
-func (s *Server) Respond(sess *mux.Session, ctx context.Context) {
+func (s *Server) Respond(sess mux.Session, ctx context.Context) {
 	defer sess.Close()
 
 	if s.Codec == nil {
@@ -61,7 +61,7 @@ func (s *Server) Respond(sess *mux.Session, ctx context.Context) {
 	}
 }
 
-func (s *Server) respond(hn Handler, sess *mux.Session, ch *mux.Channel, ctx context.Context) {
+func (s *Server) respond(hn Handler, sess mux.Session, ch mux.Channel, ctx context.Context) {
 	framer := &FrameCodec{Codec: s.Codec}
 	dec := framer.Decoder(ch)
 

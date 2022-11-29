@@ -36,7 +36,7 @@ type Call struct {
 	Caller  Caller
 	Decoder codec.Decoder
 	Context context.Context
-	ch      *mux.Channel
+	ch      mux.Channel
 }
 
 // Receive will decode an incoming value from the underlying channel. It can be
@@ -63,7 +63,7 @@ type ResponseHeader struct {
 type Response struct {
 	ResponseHeader
 	Reply   interface{}
-	Channel *mux.Channel
+	Channel mux.Channel
 
 	codec codec.Codec
 }
@@ -86,7 +86,7 @@ type Responder interface {
 	// Continue sets the response to keep the channel open after sending a return value,
 	// and returns the underlying channel for you to take control of. If called, you
 	// become responsible for closing the channel.
-	Continue(interface{}) (*mux.Channel, error)
+	Continue(interface{}) (mux.Channel, error)
 
 	// Send encodes a value over the underlying channel, but does not initiate a response,
 	// so it must be used after calling Continue.
@@ -96,7 +96,7 @@ type Responder interface {
 type responder struct {
 	responded bool
 	header    *ResponseHeader
-	ch        *mux.Channel
+	ch        mux.Channel
 	c         codec.Codec
 }
 
@@ -108,7 +108,7 @@ func (r *responder) Return(v interface{}) error {
 	return r.respond(v, false)
 }
 
-func (r *responder) Continue(v interface{}) (*mux.Channel, error) {
+func (r *responder) Continue(v interface{}) (mux.Channel, error) {
 	return r.ch, r.respond(v, true)
 }
 
