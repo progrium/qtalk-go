@@ -17,10 +17,12 @@ func main() {
 	flag.Parse()
 
 	cmd := flag.Arg(0)
-	if cmd != "call" {
-		log.Fatal("unknown command")
-		return
-	}
+	// if cmd != "call" {
+	// 	log.Fatal("unknown command")
+	// 	return
+	// }
+	fmt.Println(cmd)
+	return
 
 	u, err := url.Parse(flag.Arg(1))
 	if err != nil {
