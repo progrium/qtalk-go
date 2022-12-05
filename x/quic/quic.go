@@ -2,13 +2,31 @@ package quic
 
 import (
 	"context"
+	"crypto/tls"
 
 	"github.com/lucas-clemente/quic-go"
 	"github.com/progrium/qtalk-go/mux"
+	"github.com/progrium/qtalk-go/talk"
 )
 
 func New(conn quic.Connection) mux.Session {
 	return &session{conn}
+}
+
+var defaultTLSConfig = tls.Config{
+	NextProtos: []string{"qtalk-quic"},
+}
+
+func Dial(addr string) (mux.Session, error) {
+	conn, err := quic.DialAddr(addr, &defaultTLSConfig, nil)
+	if err != nil {
+		return nil, err
+	}
+	return New(conn), nil
+}
+
+func init() {
+	talk.Dialers["quic"] = Dial
 }
 
 type session struct {

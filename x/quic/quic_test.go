@@ -41,10 +41,9 @@ func generateTLSConfig() *tls.Config {
 	if err != nil {
 		panic(err)
 	}
-	return &tls.Config{
-		Certificates: []tls.Certificate{tlsCert},
-		NextProtos:   []string{"quic-echo-example"},
-	}
+	cfg := defaultTLSConfig.Clone()
+	cfg.Certificates = []tls.Certificate{tlsCert}
+	return cfg
 }
 
 func TestSingleChannelEcho(t *testing.T) {
@@ -78,10 +77,9 @@ func TestSingleChannelEcho(t *testing.T) {
 	}()
 
 	addr := l.Addr().String()
-	conn, err := quic.DialAddr(addr, &tls.Config{
-		InsecureSkipVerify: true,
-		NextProtos:         []string{"quic-echo-example"},
-	}, nil)
+	cfg := defaultTLSConfig.Clone()
+	cfg.InsecureSkipVerify = true
+	conn, err := quic.DialAddr(addr, cfg, nil)
 	fatal(err, t)
 	// defer conn.Close()
 
@@ -158,10 +156,9 @@ func TestMultiChannelEcho(t *testing.T) {
 	}()
 
 	addr := l.Addr().String()
-	conn, err := quic.DialAddr(addr, &tls.Config{
-		InsecureSkipVerify: true,
-		NextProtos:         []string{"quic-echo-example"},
-	}, nil)
+	cfg := defaultTLSConfig.Clone()
+	cfg.InsecureSkipVerify = true
+	conn, err := quic.DialAddr(addr, cfg, nil)
 	fatal(err, t)
 	// defer conn.Close()
 
@@ -231,10 +228,9 @@ func TestOpenTimeout(t *testing.T) {
 	}()
 
 	addr := l.Addr().String()
-	conn, err := quic.DialAddr(addr, &tls.Config{
-		InsecureSkipVerify: true,
-		NextProtos:         []string{"quic-echo-example"},
-	}, nil)
+	cfg := defaultTLSConfig.Clone()
+	cfg.InsecureSkipVerify = true
+	conn, err := quic.DialAddr(addr, cfg, nil)
 	fatal(err, t)
 	// defer conn.Close()
 
