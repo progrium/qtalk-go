@@ -47,50 +47,6 @@ func generateTLSConfig() *tls.Config {
 	}
 }
 
-func TestOpenTimeout(t *testing.T) {
-	t.Skipf("broken")
-
-	l, err := quic.ListenAddr("127.0.0.1:0", generateTLSConfig(), nil)
-	fatal(err, t)
-	defer l.Close()
-
-	testComplete := make(chan struct{})
-	sessionClosed := make(chan struct{})
-
-	go func() {
-		conn, err := l.Accept(context.Background())
-		fatal(err, t)
-		// defer conn.Close()
-
-		sess := New(conn)
-
-		<-testComplete
-		err = sess.Close()
-		fatal(err, t)
-		close(sessionClosed)
-	}()
-
-	addr := l.Addr().String()
-	conn, err := quic.DialAddr(addr, &tls.Config{
-		InsecureSkipVerify: true,
-		NextProtos:         []string{"quic-echo-example"},
-	}, nil)
-	fatal(err, t)
-	// defer conn.Close()
-
-	sess := New(conn)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel()
-	_, err = sess.Open(ctx)
-	if err == nil {
-		t.Fatalf("expected Open to time out")
-	}
-
-	close(testComplete)
-	<-sessionClosed
-}
-
 func TestSingleChannelEcho(t *testing.T) {
 	l, err := quic.ListenAddr("127.0.0.1:0", generateTLSConfig(), nil)
 	fatal(err, t)
@@ -247,6 +203,50 @@ func TestMultiChannelEcho(t *testing.T) {
 	if !bytes.Equal(b, []byte("Hello world")) {
 		t.Fatalf("unexpected bytes: %s", b)
 	}
+	close(testComplete)
+	<-sessionClosed
+}
+
+func TestOpenTimeout(t *testing.T) {
+	t.Skipf("This test should detect that Open will time out if the remote side does not call Accept. However, that is not implemented yet.")
+
+	l, err := quic.ListenAddr("127.0.0.1:0", generateTLSConfig(), nil)
+	fatal(err, t)
+	defer l.Close()
+
+	testComplete := make(chan struct{})
+	sessionClosed := make(chan struct{})
+
+	go func() {
+		conn, err := l.Accept(context.Background())
+		fatal(err, t)
+		// defer conn.Close()
+
+		sess := New(conn)
+
+		<-testComplete
+		err = sess.Close()
+		fatal(err, t)
+		close(sessionClosed)
+	}()
+
+	addr := l.Addr().String()
+	conn, err := quic.DialAddr(addr, &tls.Config{
+		InsecureSkipVerify: true,
+		NextProtos:         []string{"quic-echo-example"},
+	}, nil)
+	fatal(err, t)
+	// defer conn.Close()
+
+	sess := New(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	_, err = sess.Open(ctx)
+	if err == nil {
+		t.Fatalf("expected Open to time out")
+	}
+
 	close(testComplete)
 	<-sessionClosed
 }

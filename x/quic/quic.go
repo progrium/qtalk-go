@@ -33,6 +33,10 @@ func (s *session) Accept() (mux.Channel, error) {
 }
 
 func (s *session) Open(ctx context.Context) (mux.Channel, error) {
+	// TODO Make this wait for an acknowledgement from the remote that it has
+	// accepted the connection. It writes some data in order to notify the remote
+	// of the new stream immediately, but my initial attempt to send an
+	// acknowledgement from the remote side lead to deadlocks in the tests.
 	stream, err := s.conn.OpenStreamSync(ctx)
 	if err != nil {
 		return nil, err
@@ -71,6 +75,6 @@ func (c *channel) Close() error {
 }
 
 func (c *channel) CloseWrite() error {
-	// TODO this may need lock to avoid concurrent call with Write
+	// TODO this may need a lock to avoid concurrent call with Write
 	return c.stream.Close()
 }
