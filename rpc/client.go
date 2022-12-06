@@ -45,13 +45,31 @@ func (c *Client) Call(ctx context.Context, selector string, args any, replies ..
 	if err != nil {
 		return nil, err
 	}
+	// If the context is cancelled before the call completes, call Close() to
+	// abort the current operation.
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		select {
+		case <-ctx.Done():
+			ch.Close()
+		case <-done:
+		}
+	}()
+	resp, err := call(ctx, ch, c.codec, selector, args, replies...)
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return resp, ctxErr
+	}
+	return resp, err
+}
 
-	framer := &FrameCodec{Codec: c.codec}
+func call(ctx context.Context, ch mux.Channel, cd codec.Codec, selector string, args any, replies ...any) (*Response, error) {
+	framer := &FrameCodec{Codec: cd}
 	enc := framer.Encoder(ch)
 	dec := framer.Decoder(ch)
 
 	// request
-	err = enc.Encode(CallHeader{
+	err := enc.Encode(CallHeader{
 		Selector: selector,
 	})
 	if err != nil {
@@ -76,7 +94,6 @@ func (c *Client) Call(ctx context.Context, selector string, args any, replies ..
 	}
 
 	// response
-	// TODO: timeout
 	var header ResponseHeader
 	err = dec.Decode(&header)
 	if err != nil {
@@ -107,7 +124,6 @@ func (c *Client) Call(ctx context.Context, selector string, args any, replies ..
 		var buf []byte
 		dec.Decode(&buf)
 	} else {
-		// TODO: timeout
 		for _, r := range replies {
 			if err := dec.Decode(r); err != nil {
 				return resp, err

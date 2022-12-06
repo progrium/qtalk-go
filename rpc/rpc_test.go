@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/progrium/qtalk-go/codec"
 	"github.com/progrium/qtalk-go/mux"
@@ -455,6 +456,36 @@ func TestRPC(t *testing.T) {
 			if rcv != "Hello world" {
 				t.Fatalf("unexpected client receive [%d]: %#v", i, rcv)
 			}
+		}
+	})
+
+	t.Run("call timeout", func(t *testing.T) {
+		client, _ := newTestPair(HandlerFunc(func(r Responder, c *Call) {
+			time.Sleep(200 * time.Millisecond)
+			fatal(t, c.Receive(nil))
+			_, err := r.Continue(nil)
+			fatal(t, err)
+
+			var rcv string
+			for i := 0; i < 3; i++ {
+				fatal(t, c.Receive(&rcv))
+				if rcv != "Hello world" {
+					t.Fatalf("unexpected server receive [%d]: %#v", i, rcv)
+				}
+			}
+			fatal(t, r.Send(rcv))
+			fatal(t, r.Send(rcv))
+			fatal(t, r.Send(rcv))
+		}))
+		defer client.Close()
+
+		ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+		defer cancel()
+
+		_, err := client.Call(ctx, "", []any{"foo"}, nil)
+		expectedError := "context deadline exceeded"
+		if fmt.Sprintf("%v", err) != expectedError {
+			t.Fatalf("expected error: %v\ngot: %v", expectedError, err)
 		}
 	})
 
