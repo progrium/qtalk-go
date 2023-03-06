@@ -57,10 +57,11 @@ func ArgsTo(fntyp reflect.Type, args []any) ([]reflect.Value, error) {
 				rv = nv
 			}
 			fnParams[idx] = rv
-		case reflect.Int:
-			// if int is expected cast the float64 (assumes json-like encoding)
-			fnParams[idx] = ensureType(reflect.ValueOf(int(param.(float64))), fntyp.In(idx))
 		default:
+			// if int is expected but got float64 assume json-like encoding and cast float to int
+			if fntyp.In(idx).Kind() == reflect.Int && reflect.TypeOf(param).Kind() == reflect.Float64 {
+				param = int(param.(float64))
+			}
 			fnParams[idx] = ensureType(reflect.ValueOf(param), fntyp.In(idx))
 		}
 	}
