@@ -83,7 +83,7 @@ func (s *Server) respond(hn Handler, sess mux.Session, ch mux.Channel, ctx conte
 	} else {
 		call.Context = ctx
 	}
-	call.ch = ch
+	call.Channel = ch
 
 	header := &ResponseHeader{}
 	resp := &responder{

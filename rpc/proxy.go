@@ -25,12 +25,12 @@ func ProxyHandler(dst *Client) Handler {
 		}
 
 		go func() {
-			io.Copy(ch, c.ch)
+			io.Copy(ch, c.Channel)
 			ch.CloseWrite()
 		}()
 		go func() {
-			io.Copy(c.ch, ch)
-			c.ch.Close()
+			io.Copy(c.Channel, ch)
+			c.Channel.Close()
 		}()
 
 		r.(*responder).responded = true

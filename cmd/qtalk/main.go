@@ -2,54 +2,29 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"flag"
-	"fmt"
 	"log"
-	"net/url"
+	"os"
 
-	"github.com/progrium/clon-go"
-	"github.com/progrium/qtalk-go/codec"
-	"github.com/progrium/qtalk-go/talk"
+	"github.com/progrium/qtalk-go/cmd/qtalk/cli"
 )
 
 func main() {
-	flag.Parse()
-
-	cmd := flag.Arg(0)
-	if cmd != "call" {
-		log.Fatal("unknown command")
-		return
+	root := &cli.Command{
+		Usage: "qtalk",
+		Long:  `qtalk is a utility for working with the qtalk protocol stack`,
 	}
 
-	u, err := url.Parse(flag.Arg(1))
+	root.AddCommand(callCmd)
+	root.AddCommand(interopCmd)
+	root.AddCommand(checkCmd)
+
+	if err := cli.Execute(context.Background(), root, os.Args[1:]); err != nil {
+		fatal(err)
+	}
+}
+
+func fatal(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	var args any
-	if len(flag.Args()) > 2 {
-		args, err = clon.Parse(flag.Args()[2:])
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	peer, err := talk.Dial(u.Scheme, u.Host, codec.JSONCodec{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer peer.Close()
-
-	var ret any
-	_, err = peer.Call(context.Background(), u.Path, args, &ret)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	b, err := json.MarshalIndent(ret, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(string(b))
 }
