@@ -10,7 +10,8 @@ import (
 var errorInterface = reflect.TypeOf((*error)(nil)).Elem()
 
 // Call wraps invoking a function via reflection, converting the arguments with
-// ArgsTo and the returns with ParseReturn.
+// ArgsTo and the returns with ParseReturn. fn argument can be a function
+// or a reflect.Value for a function.
 func Call(fn any, args []any) (_ []any, err error) {
 	defer func() {
 		if p := recover(); p != nil {
@@ -18,6 +19,9 @@ func Call(fn any, args []any) (_ []any, err error) {
 		}
 	}()
 	fnval := reflect.ValueOf(fn)
+	if rv, ok := fn.(reflect.Value); ok {
+		fnval = rv
+	}
 	fnParams, err := ArgsTo(fnval.Type(), args)
 	if err != nil {
 		return nil, err

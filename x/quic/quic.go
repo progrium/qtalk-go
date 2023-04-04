@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 
-	"github.com/lucas-clemente/quic-go"
 	"github.com/progrium/qtalk-go/mux"
 	"github.com/progrium/qtalk-go/talk"
+	"github.com/quic-go/quic-go"
 )
 
 func New(conn quic.Connection) mux.Session {
