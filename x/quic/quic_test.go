@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lucas-clemente/quic-go"
 	"github.com/progrium/qtalk-go/mux"
+	"github.com/quic-go/quic-go"
 )
 
 func fatal(err error, t *testing.T) {
