@@ -3,6 +3,8 @@ package quic
 import (
 	"context"
 	"crypto/tls"
+	"io"
+	"strings"
 
 	"github.com/progrium/qtalk-go/mux"
 	"github.com/progrium/qtalk-go/talk"
@@ -40,6 +42,9 @@ func (s *session) Close() error {
 func (s *session) Accept() (mux.Channel, error) {
 	stream, err := s.conn.AcceptStream(context.Background())
 	if err != nil {
+		if strings.Contains(err.Error(), "close connection") {
+			return nil, io.EOF
+		}
 		return nil, err
 	}
 	header := make([]byte, 1)
