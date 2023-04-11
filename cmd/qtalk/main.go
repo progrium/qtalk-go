@@ -17,6 +17,7 @@ func main() {
 	root.AddCommand(callCmd)
 	root.AddCommand(interopCmd)
 	root.AddCommand(checkCmd)
+	root.AddCommand(benchCmd)
 
 	if err := cli.Execute(context.Background(), root, os.Args[1:]); err != nil {
 		fatal(err)
