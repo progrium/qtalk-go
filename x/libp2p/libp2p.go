@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/discovery"
@@ -41,7 +42,7 @@ type Conn interface {
 }
 
 type conn struct {
-	host   host.Host
+	host   myHost
 	inbox  chan network.Stream
 	disc   discoverer
 	cancel context.CancelFunc
@@ -60,51 +61,82 @@ func (c chainedClose) Close() error {
 }
 
 func Dial(rendezvous string) (mux.Session, error) {
+	dialTimeout := time.Second * 10
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, dialTimeout)
+	defer cancel()
+	return DialContext(ctx, rendezvous)
+}
+
+func p2p(ctx context.Context) (myHost, discoverer, error) {
 	host, err := libp2p.New()
+	if err != nil {
+		return nil, discoverer{}, err
+	}
+	disc, err := discover(ctx, host)
+	if err != nil {
+		return nil, discoverer{}, errorsJoin(err, host.Close())
+	}
+	return host, disc, nil
+}
+
+func DialContext(ctx context.Context, rendezvous string) (mux.Session, error) {
+	host, stream, err := connectToPeer(ctx, rendezvous)
 	if err != nil {
 		return nil, err
 	}
-	ctx := context.Background()
-	disc, err := discover(ctx, host)
+	return mux.New(chainedClose{stream, host}), nil
+}
+
+func connectToPeer(ctx context.Context, rendezvous string) (myHost, network.Stream, error) {
+	host, disc, err := p2p(ctx)
 	if err != nil {
-		return nil, errorsJoin(err, host.Close())
+		return nil, nil, err
 	}
 	defer disc.Close()
 
-	peerChan, err := disc.FindPeers(ctx, rendezvous)
-	if err != nil {
-		return nil, err
-	}
-
-	for peer := range peerChan {
-		if peer.ID == host.ID() || len(peer.Addrs) == 0 {
-			continue
-		}
-		logger.Info("Found peer:", peer)
-
-		logger.Info("Connecting to:", peer)
-		stream, err := host.NewStream(ctx, peer.ID, protocolID)
-
+	for {
+		peerChan, err := disc.FindPeers(ctx, rendezvous)
 		if err != nil {
-			logger.Debug("Connection failed:", err)
-			continue
+			return nil, nil, errorsJoin(host.Close(), err)
 		}
 
-		return mux.New(chainedClose{stream, host}), err
-	}
+		for peer := range peerChan {
+			if peer.ID == host.ID() || len(peer.Addrs) == 0 {
+				continue
+			}
+			logger.Info("Found peer:", peer)
 
-	return nil, fmt.Errorf("unable to connect to peers")
+			logger.Info("Connecting to:", peer)
+			stream, err := host.NewStream(ctx, peer.ID, protocolID)
+
+			if err != nil {
+				logger.Info("Connection failed:", err)
+				continue
+			}
+
+			logger.Info("Finished connecting")
+
+			return host, stream, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, nil, errorsJoin(host.Close(), fmt.Errorf("unable to connect to peers"))
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 func Listen(rendezvous string) (Conn, error) {
-	host, err := libp2p.New()
+	ctx := context.Background()
+	return ListenCtx(ctx, rendezvous)
+}
+
+func ListenCtx(ctx context.Context, rendezvous string) (Conn, error) {
+	host, disc, err := p2p(ctx)
 	if err != nil {
 		return nil, err
-	}
-	ctx := context.Background()
-	disc, err := discover(ctx, host)
-	if err != nil {
-		return nil, errorsJoin(err, host.Close())
 	}
 
 	ctx2, cancel := context.WithCancel(ctx)
