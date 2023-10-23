@@ -90,23 +90,24 @@ func main() {
 	defer cancel()
 
 	go func() {
-		r := bufio.NewReader(ch)
-		for {
-			line, err := r.ReadString('\n')
-			fatal(err, "read line")
-			log.Println("read: ", line)
+		for i := 0; i < 10; i++ {
+			select {
+			case <-tick:
+				log.Println("sending: ping")
+				_, err := ch.Write([]byte("ping\n"))
+				fatal(err, "send ping")
+			case <-ctx.Done():
+				return
+			}
 		}
+		fatal(ch.CloseWrite(), "close write")
 	}()
 
+	r := bufio.NewReader(ch)
 	for {
-		select {
-		case <-tick:
-			log.Println("sending: ping")
-			_, err := ch.Write([]byte("ping\n"))
-			fatal(err, "send ping")
-		case <-ctx.Done():
-			return
-		}
+		line, err := r.ReadString('\n')
+		fatal(err, "read line")
+		log.Println("read: ", line)
 	}
 }
 

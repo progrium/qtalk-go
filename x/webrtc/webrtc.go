@@ -3,6 +3,7 @@ package webrtc
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/pion/datachannel"
 	"github.com/pion/webrtc/v3"
@@ -134,16 +135,18 @@ func newChannel(ch *webrtc.DataChannel) (mux.Channel, error) {
 	}
 	return &channel{
 		// id is assigned before calling OnOpen, so we expect it to be non-nil
-		uint32(*ch.ID()),
-		ch,
-		rwc,
+		id:  uint32(*ch.ID()),
+		ch:  ch,
+		rwc: rwc,
 	}, nil
 }
 
 type channel struct {
-	id  uint32
-	ch  *webrtc.DataChannel
-	rwc datachannel.ReadWriteCloser
+	id          uint32
+	ch          *webrtc.DataChannel
+	rwc         datachannel.ReadWriteCloser
+	gotEOF      bool
+	closedWrite bool
 }
 
 func (c *channel) ID() uint32 {
@@ -151,10 +154,23 @@ func (c *channel) ID() uint32 {
 }
 
 func (c *channel) Read(p []byte) (int, error) {
-	return c.rwc.Read(p)
+	if c.gotEOF {
+		return 0, io.EOF
+	}
+	n, isString, err := c.rwc.ReadDataChannel(p)
+	if err != nil {
+		return n, err
+	}
+	if isString && string(p[:n]) == "EOF" {
+		return 0, io.EOF
+	}
+	return n, nil
 }
 
 func (c *channel) Write(p []byte) (int, error) {
+	if c.closedWrite {
+		return 0, io.ErrClosedPipe
+	}
 	return c.rwc.Write(p)
 }
 
@@ -163,8 +179,12 @@ func (c *channel) Close() error {
 }
 
 func (c *channel) CloseWrite() error {
-	// FIXME do we need to send a message to signal the end of the stream?
-	panic("not implemented")
+	_, err := c.rwc.WriteDataChannel([]byte("EOF"), true)
+	if err != nil {
+		return err
+	}
+	c.closedWrite = true
+	return nil
 }
 
 type Signaler interface {
